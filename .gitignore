@@ -1,0 +1,26 @@
+# IDE
+.vscode/
+.idea/
+.fleet/
+
+# MacOS
+.DS_Store
+
+# Build
+build/
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# components of openGemini
+data/*
