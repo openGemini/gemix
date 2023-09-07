@@ -41,8 +41,8 @@ const (
 // remote
 const (
 	// openGemini-UP
-	Remote_bin_rel_path = "bin/"
-	Remote_etc_rel_path = "etc/"
+	Remote_bin_rel_path = "/bin/"
+	Remote_etc_rel_path = "/etc/"
 
 	// openGemini
 	OpenGemini_path   = "/tmp/openGemini"
