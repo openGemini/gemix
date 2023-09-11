@@ -2,10 +2,12 @@ package deploy
 
 import (
 	"fmt"
+	"io/ioutil"
 	"openGemini-UP/pkg/config"
 	"openGemini-UP/pkg/download"
 	"openGemini-UP/pkg/exec"
 	"openGemini-UP/util"
+	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -93,6 +95,12 @@ func (d *GeminiDeployer) PrepareForDeploy() error {
 
 func (d *GeminiDeployer) PrepareForStart() error {
 	var err error
+	var version string
+	if version, err = d.getVersion(); err != nil {
+		return err
+	}
+	d.version = version
+
 	if err = d.configurator.RunWithoutGen(); err != nil {
 		return err
 	}
@@ -342,12 +350,38 @@ func (d *GeminiDeployer) prepareRunActions(c *config.Config) error {
 func (d *GeminiDeployer) Deploy() error {
 	d.uploadFiles()
 	d.startCluster()
+	d.saveVersion()
 	return nil
 }
 
 func (d *GeminiDeployer) Start() error {
 	d.startCluster()
 	return nil
+}
+
+func (d *GeminiDeployer) saveVersion() error {
+	filePath := filepath.Join(util.Download_dst, util.VersionFile)
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(d.version)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *GeminiDeployer) getVersion() (string, error) {
+	filePath := filepath.Join(util.Download_dst, util.VersionFile)
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
 }
 
 func (d *GeminiDeployer) uploadFiles() {
