@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	"golang.org/x/text/encoding/unicode"
@@ -82,8 +83,9 @@ func (c *GeminiConfigurator) RunWithoutGen() error {
 }
 
 func (c *GeminiConfigurator) generateConf() error {
-	if _, err := os.Stat(util.Download_dst + util.Local_etc_rel_path); os.IsNotExist(err) {
-		errDir := os.MkdirAll(util.Download_dst+util.Local_etc_rel_path, 0755)
+	confPah := filepath.Join(util.Download_dst, util.Local_etc_rel_path)
+	if _, err := os.Stat(confPah); os.IsNotExist(err) {
+		errDir := os.MkdirAll(confPah, 0755)
 		if errDir != nil {
 			return errDir
 		}

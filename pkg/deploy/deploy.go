@@ -6,6 +6,7 @@ import (
 	"openGemini-UP/pkg/download"
 	"openGemini-UP/pkg/exec"
 	"openGemini-UP/util"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
@@ -173,7 +174,7 @@ func (d *GeminiDeployer) tryConnect(needSftp bool) error {
 			// Convert relative paths to absolute paths.
 			if r.UpDataPath[:1] == "~" {
 				pwd, _ := sftpClient.Getwd()
-				r.UpDataPath = pwd + r.UpDataPath[1:]
+				r.UpDataPath = filepath.Join(pwd, r.UpDataPath[1:])
 			}
 		}
 	}
@@ -185,8 +186,8 @@ func (d *GeminiDeployer) prepareForUpload() error {
 		return util.UnexpectedNil
 	}
 	for ip, r := range d.remotes {
-		binPath := r.UpDataPath + util.Remote_bin_rel_path
-		etcPath := r.UpDataPath + util.Remote_etc_rel_path
+		binPath := filepath.Join(r.UpDataPath, d.version, util.Remote_bin_rel_path)
+		etcPath := filepath.Join(r.UpDataPath, d.version, util.Remote_etc_rel_path)
 		command := fmt.Sprintf("mkdir -p %s; mkdir -p %s;", binPath, etcPath)
 		if _, err := d.executor.ExecCommand(ip, command); err != nil {
 			return err
@@ -210,8 +211,8 @@ func (d *GeminiDeployer) prepareUploadActions(c *config.Config) error {
 			}
 		}
 		d.uploads[host].uploadInfo = append(d.uploads[host].uploadInfo, &config.UploadInfo{
-			LocalPath:  util.Download_dst + "/" + d.version + util.Local_bin_rel_path + util.TS_META,
-			RemotePath: d.remotes[host].UpDataPath + util.Remote_bin_rel_path,
+			LocalPath:  filepath.Join(util.Download_dst, d.version, util.Local_bin_rel_path, util.TS_META),
+			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.Remote_bin_rel_path),
 			FileName:   util.TS_META,
 		})
 	}
@@ -225,8 +226,8 @@ func (d *GeminiDeployer) prepareUploadActions(c *config.Config) error {
 			}
 		}
 		d.uploads[host].uploadInfo = append(d.uploads[host].uploadInfo, &config.UploadInfo{
-			LocalPath:  util.Download_dst + "/" + d.version + util.Local_bin_rel_path + util.TS_SQL,
-			RemotePath: d.remotes[host].UpDataPath + util.Remote_bin_rel_path,
+			LocalPath:  filepath.Join(util.Download_dst, d.version, util.Local_bin_rel_path, util.TS_SQL),
+			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.Remote_bin_rel_path),
 			FileName:   util.TS_SQL,
 		})
 	}
@@ -240,8 +241,8 @@ func (d *GeminiDeployer) prepareUploadActions(c *config.Config) error {
 			}
 		}
 		d.uploads[host].uploadInfo = append(d.uploads[host].uploadInfo, &config.UploadInfo{
-			LocalPath:  util.Download_dst + "/" + d.version + util.Local_bin_rel_path + util.TS_STORE,
-			RemotePath: d.remotes[host].UpDataPath + util.Remote_bin_rel_path,
+			LocalPath:  filepath.Join(util.Download_dst, d.version, util.Local_bin_rel_path, util.TS_STORE),
+			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.Remote_bin_rel_path),
 			FileName:   util.TS_STORE,
 		})
 	}
@@ -254,14 +255,14 @@ func (d *GeminiDeployer) prepareUploadActions(c *config.Config) error {
 			}
 		}
 		d.uploads[host].uploadInfo = append(d.uploads[host].uploadInfo, &config.UploadInfo{
-			LocalPath:  util.Download_dst + util.Local_etc_rel_path + host + util.Remote_conf_suffix,
-			RemotePath: d.remotes[host].UpDataPath + util.Remote_etc_rel_path,
+			LocalPath:  filepath.Join(util.Download_dst, util.Local_etc_rel_path, host+util.Remote_conf_suffix),
+			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.Remote_etc_rel_path),
 			FileName:   host + util.Remote_conf_suffix,
 		})
 
 		d.uploads[host].uploadInfo = append(d.uploads[host].uploadInfo, &config.UploadInfo{
 			LocalPath:  util.Install_script_path,
-			RemotePath: d.remotes[host].UpDataPath + util.Remote_etc_rel_path,
+			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.Remote_etc_rel_path),
 			FileName:   util.Install_Script,
 		})
 	}
@@ -282,12 +283,12 @@ func (d *GeminiDeployer) prepareRunActions(c *config.Config) error {
 
 		d.runs.MetaAction = append(d.runs.MetaAction, &exec.RunAction{
 			Info: &exec.RunInfo{
-				ScriptPath: d.remotes[host].UpDataPath + util.Remote_etc_rel_path + util.Install_Script,
+				ScriptPath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.Remote_etc_rel_path, util.Install_Script),
 				Args: []string{util.TS_META, util.OpenGemini_path,
-					d.remotes[host].UpDataPath + util.Remote_bin_rel_path + util.TS_META,
-					d.remotes[host].UpDataPath + util.Remote_etc_rel_path + host + util.Remote_conf_suffix,
-					util.OpenGemini_path + util.Remote_pid_path + util.META + strconv.Itoa(i) + util.Remote_pid_suffix,
-					util.OpenGemini_path + util.Remote_log_path + strconv.Itoa(i) + util.META_extra_log + strconv.Itoa(i) + util.Remote_log_suffix,
+					filepath.Join(d.remotes[host].UpDataPath, d.version, util.Remote_bin_rel_path, util.TS_META),
+					filepath.Join(d.remotes[host].UpDataPath, d.version, util.Remote_etc_rel_path, host+util.Remote_conf_suffix),
+					filepath.Join(util.OpenGemini_path, util.Remote_pid_path, util.META+strconv.Itoa(i)+util.Remote_pid_suffix),
+					filepath.Join(util.OpenGemini_path, util.Remote_log_path, strconv.Itoa(i), util.META_extra_log+strconv.Itoa(i)+util.Remote_log_suffix),
 					strconv.Itoa(i)},
 			},
 			Remote: d.remotes[host],
@@ -302,12 +303,12 @@ func (d *GeminiDeployer) prepareRunActions(c *config.Config) error {
 
 		d.runs.SqlAction = append(d.runs.SqlAction, &exec.RunAction{
 			Info: &exec.RunInfo{
-				ScriptPath: d.remotes[host].UpDataPath + util.Remote_etc_rel_path + util.Install_Script,
+				ScriptPath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.Remote_etc_rel_path, util.Install_Script),
 				Args: []string{util.TS_SQL, util.OpenGemini_path,
-					d.remotes[host].UpDataPath + util.Remote_bin_rel_path + util.TS_SQL,
-					d.remotes[host].UpDataPath + util.Remote_etc_rel_path + host + util.Remote_conf_suffix,
-					util.OpenGemini_path + util.Remote_pid_path + util.SQL + strconv.Itoa(i) + util.Remote_pid_suffix,
-					util.OpenGemini_path + util.Remote_log_path + strconv.Itoa(i) + util.SQL_extra_log + strconv.Itoa(i) + util.Remote_log_suffix,
+					filepath.Join(d.remotes[host].UpDataPath, d.version, util.Remote_bin_rel_path, util.TS_SQL),
+					filepath.Join(d.remotes[host].UpDataPath, d.version, util.Remote_etc_rel_path, host+util.Remote_conf_suffix),
+					filepath.Join(util.OpenGemini_path, util.Remote_pid_path, util.SQL+strconv.Itoa(i)+util.Remote_pid_suffix),
+					filepath.Join(util.OpenGemini_path, util.Remote_log_path, strconv.Itoa(i), util.SQL_extra_log+strconv.Itoa(i)+util.Remote_log_suffix),
 					strconv.Itoa(i)},
 			},
 			Remote: d.remotes[host],
@@ -322,12 +323,12 @@ func (d *GeminiDeployer) prepareRunActions(c *config.Config) error {
 
 		d.runs.StoreAction = append(d.runs.StoreAction, &exec.RunAction{
 			Info: &exec.RunInfo{
-				ScriptPath: d.remotes[host].UpDataPath + util.Remote_etc_rel_path + util.Install_Script,
+				ScriptPath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.Remote_etc_rel_path, util.Install_Script),
 				Args: []string{util.TS_STORE, util.OpenGemini_path,
-					d.remotes[host].UpDataPath + util.Remote_bin_rel_path + util.TS_STORE,
-					d.remotes[host].UpDataPath + util.Remote_etc_rel_path + host + util.Remote_conf_suffix,
-					util.OpenGemini_path + util.Remote_pid_path + util.STORE + strconv.Itoa(i) + util.Remote_pid_suffix,
-					util.OpenGemini_path + util.Remote_log_path + strconv.Itoa(i) + util.STORE_extra_log + strconv.Itoa(i) + util.Remote_log_suffix,
+					filepath.Join(d.remotes[host].UpDataPath, d.version, util.Remote_bin_rel_path, util.TS_STORE),
+					filepath.Join(d.remotes[host].UpDataPath, d.version, util.Remote_etc_rel_path, host+util.Remote_conf_suffix),
+					filepath.Join(util.OpenGemini_path, util.Remote_pid_path, util.STORE+strconv.Itoa(i)+util.Remote_pid_suffix),
+					filepath.Join(util.OpenGemini_path, util.Remote_log_path, strconv.Itoa(i), util.STORE_extra_log+strconv.Itoa(i)+util.Remote_log_suffix),
 					strconv.Itoa(i)},
 			},
 			Remote: d.remotes[host],
@@ -357,7 +358,7 @@ func (d *GeminiDeployer) uploadFiles() {
 			for _, c := range action.uploadInfo {
 				// check whether need to upload the file
 				// only support Linux
-				cmd := fmt.Sprintf("if [ -f %s ]; then echo 'File exists'; else echo 'File not found'; fi", c.RemotePath+c.FileName)
+				cmd := fmt.Sprintf("if [ -f %s ]; then echo 'File exists'; else echo 'File not found'; fi", filepath.Join(c.RemotePath, c.FileName))
 				output, err := d.executor.ExecCommand(ip, cmd)
 				if string(output) == "File exists\n" && err == nil {
 					fmt.Printf("%s exists on %s.\n", c.FileName, c.RemotePath)

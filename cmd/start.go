@@ -34,5 +34,4 @@ var startCmd = &cobra.Command{
 
 func init() {
 	clusterCmd.AddCommand(startCmd)
-	startCmd.Flags().StringP("version", "v", "", "component name")
 }
