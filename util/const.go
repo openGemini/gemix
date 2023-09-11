@@ -58,3 +58,8 @@ const (
 	SQL             = "sql"
 	STORE           = "store"
 )
+
+// version
+const (
+	VersionFile = "version"
+)
