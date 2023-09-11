@@ -16,8 +16,8 @@ const (
 
 // local
 const (
-	Local_bin_rel_path = "/usr/bin/"
-	Local_etc_rel_path = "/etc/"
+	Local_bin_rel_path = "usr/bin"
+	Local_etc_rel_path = "etc"
 )
 
 // config
@@ -41,19 +41,19 @@ const (
 // remote
 const (
 	// openGemini-UP
-	Remote_bin_rel_path = "/bin/"
-	Remote_etc_rel_path = "/etc/"
+	Remote_bin_rel_path = "bin"
+	Remote_etc_rel_path = "etc"
 
 	// openGemini
 	OpenGemini_path   = "/tmp/openGemini"
-	Remote_pid_path   = "/pid/"
-	Remote_log_path   = "/logs/"
+	Remote_pid_path   = "pid"
+	Remote_log_path   = "logs"
 	Remote_pid_suffix = ".pid"
 	Remote_log_suffix = ".log"
 
-	META_extra_log  = "/meta_extra"
-	SQL_extra_log   = "/sql_extra"
-	STORE_extra_log = "/store_extra"
+	META_extra_log  = "meta_extra"
+	SQL_extra_log   = "sql_extra"
+	STORE_extra_log = "store_extra"
 	META            = "meta"
 	SQL             = "sql"
 	STORE           = "store"

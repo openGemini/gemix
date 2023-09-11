@@ -38,7 +38,7 @@ func NewGeminiDownloader(version string) Downloader {
 		website:     util.Download_web,
 		version:     version,
 		typ:         util.Download_type,
-		destination: util.Download_dst + "/",
+		destination: util.Download_dst,
 		timeout:     util.Download_timeout,
 	}
 }
@@ -93,7 +93,7 @@ func (d *GeminiDownloader) Run() error {
 	}
 
 	if d.isMissing() { // check whether need to download the files
-		dir := d.destination + d.version
+		dir := filepath.Join(d.destination, d.version)
 		if err := d.spliceUrl(); err != nil {
 			d.CleanFile(dir)
 			return err
@@ -114,13 +114,13 @@ func (d *GeminiDownloader) Run() error {
 }
 
 func (d *GeminiDownloader) isMissing() bool {
-	dir := d.destination + d.version
+	dir := filepath.Join(d.destination, d.version)
 	_, err := os.Stat(dir)
 	return os.IsNotExist(err)
 }
 
 func (d *GeminiDownloader) downloadFile() error {
-	dir := d.destination + d.version
+	dir := filepath.Join(d.destination, d.version)
 	fmt.Printf("start downloading file from %s to %s\n", d.Url, dir)
 
 	var client *http.Client
@@ -168,7 +168,7 @@ func (d *GeminiDownloader) downloadFile() error {
 	}
 	fmt.Printf("mkdir: %s\n", dir)
 	idx := strings.LastIndex(d.Url, "/")
-	dst := dir + "/" + d.Url[idx+1:]
+	dst := filepath.Join(dir, d.Url[idx+1:])
 	out, err := os.Create(dst)
 	if err != nil {
 		return err
@@ -184,7 +184,7 @@ func (d *GeminiDownloader) downloadFile() error {
 }
 
 func (d *GeminiDownloader) decompressFile() error {
-	targetPath := d.destination + d.version + "/"
+	targetPath := filepath.Join(d.destination, d.version)
 	fmt.Printf("start decompressing %s to %s\n", d.fileName, targetPath)
 
 	// open .tar.gz file
