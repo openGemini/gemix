@@ -14,6 +14,12 @@ import (
 	"time"
 )
 
+type DownloadOptions struct {
+	Version string
+	Os      string
+	Arch    string
+}
+
 type Downloader interface {
 	Run() error
 	downloadFile() error
@@ -21,23 +27,20 @@ type Downloader interface {
 }
 
 type GeminiDownloader struct {
-	website string
-	version string
-	typ     string
-	Url     string
-
+	website     string
+	version     string
+	typ         string
+	Url         string
 	destination string
-
-	timeout time.Duration
-
-	fileName string
+	timeout     time.Duration
+	fileName    string
 }
 
-func NewGeminiDownloader(version string) Downloader {
+func NewGeminiDownloader(ops DownloadOptions) Downloader {
 	return &GeminiDownloader{
 		website:     util.Download_web,
-		version:     version,
-		typ:         util.Download_type,
+		version:     ops.Version,
+		typ:         "-" + ops.Os + "-" + ops.Arch + util.Download_pkg_suffix,
 		destination: util.Download_dst,
 		timeout:     util.Download_timeout,
 	}
@@ -65,11 +68,7 @@ func (d *GeminiDownloader) spliceUrl() error {
 	}
 
 	if d.version == "" {
-		d.version = util.Download_version
-	}
-
-	if d.typ == "" {
-		d.typ = util.Download_type
+		d.version = util.Download_default_version
 	}
 
 	if err := d.checkVersion(); err != nil {

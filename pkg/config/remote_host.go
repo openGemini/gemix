@@ -8,6 +8,7 @@ const (
 	SSH_KEY    SSHType = 2
 )
 
+// used by deploy, exe, stop .etc
 type RemoteHost struct {
 	Ip         string
 	SSHPort    int
@@ -16,6 +17,7 @@ type RemoteHost struct {
 	KeyPath    string
 	Typ        SSHType
 	UpDataPath string
+	LogPath    string
 }
 
 type UploadInfo struct {

@@ -21,9 +21,23 @@ var installCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		version, _ := cmd.Flags().GetString("version")
 		if version == "" {
-			version = util.Download_version
+			version = util.Download_default_version
 		}
-		downloader := download.NewGeminiDownloader(version)
+		os, _ := cmd.Flags().GetString("os")
+		if os == "" {
+			os = util.Download_default_os
+		}
+		arch, _ := cmd.Flags().GetString("arch")
+		if arch == "" {
+			arch = util.Download_default_arch
+		}
+		dOps := download.DownloadOptions{
+			Version: version,
+			Os:      os,
+			Arch:    arch,
+		}
+
+		downloader := download.NewGeminiDownloader(dOps)
 		if err := downloader.Run(); err != nil {
 			fmt.Println(err)
 		}
@@ -32,5 +46,7 @@ var installCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(installCmd)
-	installCmd.Flags().StringP("version", "v", "", "component version")
+	installCmd.Flags().StringP("version", "v", "", "component version; default is v1.0.0")
+	installCmd.Flags().StringP("os", "o", "", "operating system, linux/darwin/windows; default is linux")
+	installCmd.Flags().StringP("arch", "a", "", "Supported values: amd64, arm64; default is amd64")
 }
