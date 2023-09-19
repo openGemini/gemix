@@ -18,7 +18,13 @@ var startCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("--------------- Cluster starting! ---------------")
 
-		deployer := deploy.NewGeminiDeployer("")
+		ops, err := getClusterOptions(cmd)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		deployer := deploy.NewGeminiDeployer(ops)
 		defer deployer.Close()
 
 		if err := deployer.PrepareForStart(); err != nil {
@@ -34,4 +40,8 @@ var startCmd = &cobra.Command{
 
 func init() {
 	clusterCmd.AddCommand(startCmd)
+	startCmd.Flags().StringP("yaml", "y", "", "The path to cluster configuration yaml file")
+	startCmd.Flags().StringP("user", "u", "", "The user name to login via SSH. The user must has root (or sudo) privilege.")
+	startCmd.Flags().StringP("key", "k", "", "The path of the SSH identity file. If specified, public key authentication will be used.")
+	startCmd.Flags().StringP("password", "p", "", "The password of target hosts. If specified, password authentication will be used.")
 }

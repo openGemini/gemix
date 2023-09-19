@@ -6,28 +6,31 @@ import "time"
 
 // downloader
 const (
-	Download_web       = "https://github.com/openGemini/openGemini/releases/download"
-	Download_version   = "v1.0.0"
-	Download_fill_char = "openGemini-"
-	Download_type      = "-linux-amd64.tar.gz"
-	Download_dst       = "./data"
-	Download_timeout   = 2 * time.Minute
+	Download_web        = "https://github.com/openGemini/openGemini/releases/download"
+	Download_fill_char  = "openGemini-"
+	Download_pkg_suffix = ".tar.gz"
+
+	// fixed values
+	Download_dst     = "./data"
+	Download_timeout = 2 * time.Minute
+
+	// default values
+	Download_default_version = "v1.0.0"
+	Download_default_os      = "linux"
+	Download_default_arch    = "amd64"
 )
 
 // local
 const (
 	Local_bin_rel_path = "usr/bin"
 	Local_etc_rel_path = "etc"
+	Local_conf_name    = "openGemini.conf"
 )
 
 // config
 const (
-	User_conf_path       = "./up.conf"
-	Conf_gen_script_path = "./scripts/conf_gen.sh"
-	Install_script_path  = "./scripts/install.sh"
-	Remote_conf_suffix   = "-openGemini.conf"
-	SSH_KEY              = "SSH_KEY"
-	SSH_PW               = "SSH_PW"
+	Install_script_path = "./scripts/install.sh"
+	Remote_conf_suffix  = "-openGemini.conf"
 )
 
 // file name
@@ -45,9 +48,7 @@ const (
 	Remote_etc_rel_path = "etc"
 
 	// openGemini
-	OpenGemini_path   = "/tmp/openGemini"
 	Remote_pid_path   = "pid"
-	Remote_log_path   = "logs"
 	Remote_pid_suffix = ".pid"
 	Remote_log_suffix = ".log"
 

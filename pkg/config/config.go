@@ -1,42 +1,23 @@
 package config
 
-import (
-	"io/ioutil"
-	"openGemini-UP/util"
-	"os"
-	"os/exec"
-	"path"
-	"path/filepath"
-
-	"github.com/BurntSushi/toml"
-	"golang.org/x/text/encoding/unicode"
-	"golang.org/x/text/transform"
-)
-
 type CommonConfig struct {
-	MetaHosts  []string `toml:"meta"`
-	StoreHosts []string `toml:"store"`
-	SqlHosts   []string `toml:"sql"`
-}
-
-type HostConfig struct {
-	HostNames []string `toml:"name"`
-	HostIPs   []string `toml:"ip"`
+	MetaHosts  []string //IPs
+	StoreHosts []string
+	SqlHosts   []string
+	Os         string
+	Arch       string
 }
 
 type SSHConfig struct {
-	Port       int    `toml:"port"`
-	User       string `toml:"user"`
-	Typ        string `toml:"type"`
-	Password   string `toml:"password"`
-	KeyPath    string `toml:"key-path"`
-	UpDataPath string `toml:"up-data-path"`
+	// get from yaml
+	Port       int
+	UpDataPath string
+	LogPath    string
 }
 
 type Config struct {
-	CommonConfig *CommonConfig `toml:"common"`
-	HostConfig   *HostConfig   `toml:"host"`
-	SSHConfig    *SSHConfig    `toml:"ssh"`
+	CommonConfig *CommonConfig
+	SSHConfig    map[string]SSHConfig
 }
 
 type Configurator interface {
@@ -46,81 +27,111 @@ type Configurator interface {
 }
 
 type GeminiConfigurator struct {
-	confPath   string
-	scriptPath string
-	conf       *Config
+	yamlPath string
+	tomlPath string
+	genPath  string
+	version  string
+	conf     *Config
 }
 
-func NewGeminiConfigurator(cPath, sPath string) Configurator {
+func NewGeminiConfigurator(yPath, tPath, gPath, v string) Configurator {
 	return &GeminiConfigurator{
-		confPath:   cPath,
-		scriptPath: sPath,
+		yamlPath: yPath,
+		tomlPath: tPath,
+		genPath:  gPath,
+		version:  v,
 		conf: &Config{
 			CommonConfig: &CommonConfig{},
-			HostConfig:   &HostConfig{},
-			SSHConfig:    &SSHConfig{},
+			SSHConfig:    make(map[string]SSHConfig),
 		},
 	}
 }
 
 func (c *GeminiConfigurator) Run() error {
 	var err error
-	if err = c.fromTomlFile(); err != nil {
+	var t Toml
+	var y Yaml
+	if y, err = ReadFromYaml(c.yamlPath); err != nil {
 		return err
 	}
-	if err = c.generateConf(); err != nil {
+	if t, err = ReadFromToml(c.tomlPath); err != nil {
 		return err
 	}
-	return nil
+	GenConfs(y, t, c.genPath)
+	c.buildFromYaml(y)
+	return err
 }
 
 func (c *GeminiConfigurator) RunWithoutGen() error {
 	var err error
-	if err = c.fromTomlFile(); err != nil {
+	var y Yaml
+	if y, err = ReadFromYaml(c.yamlPath); err != nil {
 		return err
 	}
-	return nil
-}
-
-func (c *GeminiConfigurator) generateConf() error {
-	confPah := filepath.Join(util.Download_dst, util.Local_etc_rel_path)
-	if _, err := os.Stat(confPah); os.IsNotExist(err) {
-		errDir := os.MkdirAll(confPah, 0755)
-		if errDir != nil {
-			return errDir
-		}
-	}
-
-	cmd := exec.Command("/bin/bash", c.scriptPath)
-	cmd.Args = append(cmd.Args, util.Download_dst)
-	cmd.Args = append(cmd.Args, c.conf.HostConfig.HostIPs...)
-
-	_, err := cmd.CombinedOutput()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *GeminiConfigurator) fromTomlFile() error {
-	content, err := ioutil.ReadFile(path.Clean(c.confPath))
-	if err != nil {
-		return err
-	}
-
-	dec := unicode.BOMOverride(transform.Nop)
-	content, _, err = transform.Bytes(dec, content)
-	if err != nil {
-		return err
-	}
-	return fromToml(c.conf, string(content))
-}
-
-func fromToml(c *Config, input string) error {
-	_, err := toml.Decode(input, c)
+	c.buildFromYaml(y)
 	return err
 }
 
 func (c *GeminiConfigurator) GetConfig() *Config {
 	return c.conf
+}
+
+func (c *GeminiConfigurator) buildFromYaml(y Yaml) {
+	c.conf.CommonConfig.Os = y.Global.OS
+	c.conf.CommonConfig.Arch = y.Global.Arch
+
+	for _, meta := range y.TsMeta {
+		ssh, ok := c.conf.SSHConfig[meta.Host]
+		if !ok {
+			ssh = SSHConfig{}
+		}
+		if meta.SSHPort != 0 {
+			ssh.Port = meta.SSHPort
+		}
+		if meta.DeployDir != "" {
+			ssh.UpDataPath = meta.DeployDir
+		}
+		if meta.LogDir != "" {
+			ssh.LogPath = meta.LogDir
+		}
+		c.conf.SSHConfig[meta.Host] = ssh
+
+		c.conf.CommonConfig.MetaHosts = append(c.conf.CommonConfig.MetaHosts, meta.Host)
+	}
+	for _, sql := range y.TsSql {
+		ssh, ok := c.conf.SSHConfig[sql.Host]
+		if !ok {
+			ssh = SSHConfig{}
+		}
+		if sql.SSHPort != 0 {
+			ssh.Port = sql.SSHPort
+		}
+		if sql.DeployDir != "" {
+			ssh.UpDataPath = sql.DeployDir
+		}
+		if sql.LogDir != "" {
+			ssh.LogPath = sql.LogDir
+		}
+		c.conf.SSHConfig[sql.Host] = ssh
+
+		c.conf.CommonConfig.SqlHosts = append(c.conf.CommonConfig.SqlHosts, sql.Host)
+	}
+	for _, store := range y.TsStore {
+		ssh, ok := c.conf.SSHConfig[store.Host]
+		if !ok {
+			ssh = SSHConfig{}
+		}
+		if store.SSHPort != 0 {
+			ssh.Port = store.SSHPort
+		}
+		if store.DeployDir != "" {
+			ssh.UpDataPath = store.DeployDir
+		}
+		if store.LogDir != "" {
+			ssh.LogPath = store.LogDir
+		}
+		c.conf.SSHConfig[store.Host] = ssh
+
+		c.conf.CommonConfig.StoreHosts = append(c.conf.CommonConfig.StoreHosts, store.Host)
+	}
 }

@@ -7,7 +7,7 @@ fi
 
 
 bin_name=$1
-opengemini_data_path=$2
+opengemini_log_path=$2
 bin_file=$3
 conf_file=$4
 pid_file=$5
@@ -26,8 +26,8 @@ pid=$(pgrep $bin_name)
 
 sleep 3
 
-rm -rf $opengemini_data_path/logs
-mkdir -p $opengemini_data_path/logs/$index
+# rm -rf $opengemini_log_path
+mkdir -p $opengemini_log_path/$index
 
 nohup $bin_file -config $conf_file -pidfile $pid_file> $extra_file 2>&1 &
 
