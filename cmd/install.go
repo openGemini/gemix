@@ -1,13 +1,24 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
+// Copyright 2023 Huawei Cloud Computing Technologies Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package cmd
 
 import (
 	"fmt"
-	"openGemini-UP/pkg/download"
-	"openGemini-UP/util"
 
+	"github.com/openGemini/gemix/pkg/cluster/operation"
+	"github.com/openGemini/gemix/util"
 	"github.com/spf13/cobra"
 )
 
@@ -21,23 +32,30 @@ var installCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		version, _ := cmd.Flags().GetString("version")
 		if version == "" {
-			version = util.Download_default_version
+			latestVer, err := util.GetLatestVerFromCurl()
+			if err != nil {
+				fmt.Println(err)
+				fmt.Println(cmd.UsageString())
+				return
+			} else {
+				version = latestVer
+			}
 		}
 		os, _ := cmd.Flags().GetString("os")
 		if os == "" {
-			os = util.Download_default_os
+			os = util.DownloadDefaultOs
 		}
 		arch, _ := cmd.Flags().GetString("arch")
 		if arch == "" {
-			arch = util.Download_default_arch
+			arch = util.DownloadDefaultArch
 		}
-		dOps := download.DownloadOptions{
+		dOps := operation.DownloadOptions{
 			Version: version,
 			Os:      os,
 			Arch:    arch,
 		}
 
-		downloader := download.NewGeminiDownloader(dOps)
+		downloader := operation.NewGeminiDownloader(dOps)
 		if err := downloader.Run(); err != nil {
 			fmt.Println(err)
 		}
@@ -45,8 +63,8 @@ var installCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(installCmd)
-	installCmd.Flags().StringP("version", "v", "", "component version; default is v1.0.0")
-	installCmd.Flags().StringP("os", "o", "", "operating system, linux/darwin/windows; default is linux")
-	installCmd.Flags().StringP("arch", "a", "", "Supported values: amd64, arm64; default is amd64")
+	RootCmd.AddCommand(installCmd)
+	installCmd.Flags().StringP("version", "v", "", "component version; default is the latest version")
+	installCmd.Flags().StringP("os", "o", "", "operating system, supported values: linux/darwin; default is linux")
+	installCmd.Flags().StringP("arch", "a", "", "system architecture, supported values: amd64/arm64; default is amd64")
 }

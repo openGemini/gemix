@@ -1,3 +1,17 @@
+// Copyright 2023 Huawei Cloud Computing Technologies Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package config
 
 type CommonConfig struct {
@@ -21,8 +35,8 @@ type Config struct {
 }
 
 type Configurator interface {
-	Run() error
-	RunWithoutGen() error
+	GenClusterConfs() error
+	BuildConfig() error
 	GetConfig() *Config
 }
 
@@ -30,16 +44,15 @@ type GeminiConfigurator struct {
 	yamlPath string
 	tomlPath string
 	genPath  string
-	version  string
 	conf     *Config
+	yaml     *Yaml
 }
 
-func NewGeminiConfigurator(yPath, tPath, gPath, v string) Configurator {
+func NewGeminiConfigurator(yPath, tPath, gPath string) Configurator {
 	return &GeminiConfigurator{
 		yamlPath: yPath,
 		tomlPath: tPath,
 		genPath:  gPath,
-		version:  v,
 		conf: &Config{
 			CommonConfig: &CommonConfig{},
 			SSHConfig:    make(map[string]SSHConfig),
@@ -47,28 +60,24 @@ func NewGeminiConfigurator(yPath, tPath, gPath, v string) Configurator {
 	}
 }
 
-func (c *GeminiConfigurator) Run() error {
+func (c *GeminiConfigurator) GenClusterConfs() error {
 	var err error
 	var t Toml
-	var y Yaml
-	if y, err = ReadFromYaml(c.yamlPath); err != nil {
-		return err
-	}
+	// generate new toml files
 	if t, err = ReadFromToml(c.tomlPath); err != nil {
 		return err
 	}
-	GenConfs(y, t, c.genPath)
-	c.buildFromYaml(y)
-	return err
+	return GenConfs(*c.yaml, t, c.genPath)
 }
 
-func (c *GeminiConfigurator) RunWithoutGen() error {
+func (c *GeminiConfigurator) BuildConfig() error {
 	var err error
 	var y Yaml
 	if y, err = ReadFromYaml(c.yamlPath); err != nil {
 		return err
 	}
 	c.buildFromYaml(y)
+	c.yaml = &y
 	return err
 }
 

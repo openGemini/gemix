@@ -1,6 +1,21 @@
+// Copyright 2023 Huawei Cloud Computing Technologies Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package config
 
 import (
+	"errors"
 	"io/ioutil"
 
 	"gopkg.in/yaml.v2"
@@ -64,6 +79,33 @@ type StoreYaml struct {
 	MetaDir    string `yaml:"meta_dir"`
 }
 
+func checkRequiredOptions(y Yaml) bool {
+	if y.Global.OS == "" || y.Global.Arch == "" {
+		return false
+	}
+	if y.Global.LogDir == "" || y.Global.DeployDir == "" || y.Global.SSHPort == 0 {
+		return false
+	}
+
+	for _, meta := range y.TsMeta {
+		if meta.Host == "" || meta.DataDir == "" {
+			return false
+		}
+	}
+	for _, sql := range y.TsSql {
+		if sql.Host == "" {
+			return false
+		}
+	}
+	for _, store := range y.TsStore {
+		if store.Host == "" || store.DataDir == "" || store.MetaDir == "" {
+			return false
+		}
+	}
+
+	return true
+}
+
 func updataWithGlobalDefaults(y *Yaml) {
 	for i := range y.TsMeta {
 		if y.TsMeta[i].SSHPort == 0 {
@@ -109,6 +151,11 @@ func ReadFromYaml(yamlPath string) (Yaml, error) {
 	var y Yaml
 	if err = yaml.Unmarshal(yamlFile, &y); err != nil {
 		return Yaml{}, err
+	}
+
+	// check required options
+	if pass := checkRequiredOptions(y); !pass {
+		return Yaml{}, errors.New("missing requitred options for yaml configuration file")
 	}
 
 	// Update with default values

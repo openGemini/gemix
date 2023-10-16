@@ -1,7 +1,7 @@
 
 
-if [ $# -ne 7 ]; then
-  echo "Error: Please provide exactly 7 arguments for nodes"
+if [ $# -ne 6 ]; then
+  echo "Error: Please provide exactly 6 arguments for nodes"
   exit 1
 fi
 
@@ -12,7 +12,6 @@ bin_file=$3
 conf_file=$4
 pid_file=$5
 extra_file=$6
-index=$7
 
 
 pid=$(pgrep $bin_name)
@@ -27,7 +26,7 @@ pid=$(pgrep $bin_name)
 sleep 3
 
 # rm -rf $opengemini_log_path
-mkdir -p $opengemini_log_path/$index
+mkdir -p $opengemini_log_path
 
 nohup $bin_file -config $conf_file -pidfile $pid_file> $extra_file 2>&1 &
 

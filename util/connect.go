@@ -1,3 +1,17 @@
+// Copyright 2023 Huawei Cloud Computing Technologies Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package util
 
 import (
@@ -10,6 +24,14 @@ import (
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
+)
+
+type SSHType int32
+
+const (
+	SSH_UNKNOW SSHType = 0
+	SSH_PW     SSHType = 1
+	SSH_KEY    SSHType = 2
 )
 
 func NewSSH_PW(user, password, host string, port int) (*ssh.Client, error) {
@@ -85,11 +107,9 @@ func NewSftpClient(sshClient *ssh.Client) (*sftp.Client, error) {
 	return sftpClient, nil
 }
 
-// TODO(Benevor):timeout interval
 func UploadFile(ip string, localFilePath string, remoteDir string, sftpClient *sftp.Client) error {
-	fmt.Printf("start uploading %s to %s:%s \n", localFilePath, ip, remoteDir)
 	if sftpClient == nil {
-		return NoSftpSession
+		return ErrNoSftpSession
 	}
 	srcFile, err := os.Open(localFilePath)
 	if err != nil {
@@ -109,7 +129,7 @@ func UploadFile(ip string, localFilePath string, remoteDir string, sftpClient *s
 		fmt.Printf("%s:%s read from %s failed! %v\n", ip, path.Join(remoteDir, remoteFileName), localFilePath, err)
 		return err
 	}
-	fmt.Printf("finish uploading %s to %s:%s \n", localFilePath, ip, remoteDir)
+	fmt.Printf("upload %s to %s:%s \n", localFilePath, ip, remoteDir)
 	return nil
 }
 

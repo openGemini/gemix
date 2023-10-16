@@ -12,24 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package config
 
-import (
-	"fmt"
+import "github.com/openGemini/gemix/util"
 
-	"github.com/spf13/cobra"
-)
-
-// versionCmd represents the version command
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "gemix version",
-	Long:  `Display the version number of the management deployment tool gemix.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("version: %s, branch: %s, commit: %s, build time: %s\n", Version, Branch, Commit, BuildTime)
-	},
+// used by install, exe, stop .etc
+type RemoteHost struct {
+	Ip         string
+	SSHPort    int
+	User       string
+	Password   string
+	KeyPath    string
+	Typ        util.SSHType
+	UpDataPath string
+	LogPath    string
 }
 
-func init() {
-	RootCmd.AddCommand(versionCmd)
+type UploadInfo struct {
+	LocalPath  string
+	RemotePath string
+	FileName   string
 }

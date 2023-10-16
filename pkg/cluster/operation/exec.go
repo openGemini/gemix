@@ -1,15 +1,29 @@
-package exec
+// Copyright 2023 Huawei Cloud Computing Technologies Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package operation
 
 import (
 	"fmt"
-	"openGemini-UP/pkg/config"
-	"openGemini-UP/util"
 
+	"github.com/openGemini/gemix/pkg/cluster/config"
+	"github.com/openGemini/gemix/util"
 	"golang.org/x/crypto/ssh"
 )
 
 type Executor interface {
-	ExecRunAction(action *RunAction) (string, error)
+	ExecRunAction(action *RunAction, errChan chan error) string
 	ExecStopAction(action *StopAction) (string, error)
 	ExecCommand(ip string, command string) (string, error)
 }
@@ -29,7 +43,7 @@ func (e *GeminiExecutor) ExecCommand(ip string, command string) (string, error) 
 	sshClient := e.sshClients[ip]
 	if sshClient == nil {
 		fmt.Printf("no ssh client for %s\n", ip)
-		return "", util.NoSshClient
+		return "", util.ErrNoSshClient
 	}
 
 	sshSession, err := util.NewSshSession(sshClient)
@@ -43,7 +57,6 @@ func (e *GeminiExecutor) ExecCommand(ip string, command string) (string, error) 
 		fmt.Printf("exec: %s on %s failed! %v\n", command, ip, err)
 		return "", err
 	}
-	fmt.Printf("exec: %s on %s\noutput: %s\n", command, ip, string(combo))
 	return string(combo), nil
 }
 
@@ -63,12 +76,13 @@ type RunActions struct {
 	StoreAction []*RunAction
 }
 
-func (e *GeminiExecutor) ExecRunAction(action *RunAction) (string, error) {
+func (e *GeminiExecutor) ExecRunAction(action *RunAction, errChan chan error) string {
 	ip := action.Remote.Ip
 	sshClient := e.sshClients[ip]
 	if sshClient == nil {
 		fmt.Printf("no ssh client for %s\n", ip)
-		return "", util.NoSshClient
+		errChan <- util.ErrNoSshClient
+		return ""
 	}
 
 	sshSession, err := util.NewSshSession(sshClient)
@@ -86,10 +100,10 @@ func (e *GeminiExecutor) ExecRunAction(action *RunAction) (string, error) {
 	combo, err := sshSession.CombinedOutput(command)
 	if err != nil {
 		fmt.Printf("exec: %s on %s failed! %v\n", command, ip, err)
-		return "", err
+		errChan <- err
+		return ""
 	}
-	fmt.Printf("exec: %s on %s\noutput: %s\n", command, ip, string(combo))
-	return string(combo), nil
+	return string(combo)
 }
 
 type StopAction struct {
@@ -102,7 +116,7 @@ func (e *GeminiExecutor) ExecStopAction(action *StopAction) (string, error) {
 	sshClient := e.sshClients[ip]
 	if sshClient == nil {
 		fmt.Printf("no ssh client for %s\n", ip)
-		return "", util.NoSshClient
+		return "", util.ErrNoSshClient
 	}
 
 	command := ""
@@ -120,7 +134,6 @@ func (e *GeminiExecutor) ExecStopAction(action *StopAction) (string, error) {
 		fmt.Printf("exec: %s on %s failed! %v\n", command, ip, err)
 		return "", err
 	}
-	fmt.Printf("exec: %s on %s\noutput: %s\n", command, ip, string(combo))
 
 	return string(combo), nil
 }

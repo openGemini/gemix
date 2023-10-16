@@ -1,13 +1,26 @@
-package stop
+// Copyright 2023 Huawei Cloud Computing Technologies Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package manager
 
 import (
 	"fmt"
-	"openGemini-UP/pkg/config"
-	"openGemini-UP/pkg/deploy"
-	"openGemini-UP/pkg/exec"
-	"openGemini-UP/util"
 	"sync"
 
+	"github.com/openGemini/gemix/pkg/cluster/config"
+	"github.com/openGemini/gemix/pkg/cluster/operation"
+	"github.com/openGemini/gemix/util"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -22,30 +35,25 @@ type GeminiStop struct {
 	remotes map[string]*config.RemoteHost
 
 	// ip -> actions
-	stops map[string]*exec.StopAction
+	stops map[string]*operation.StopAction
 
 	// ip -> ssh clients
 	sshClients map[string]*ssh.Client
 
 	configurator config.Configurator // conf reader
-	executor     exec.Executor       // execute commands on remote host
-
-	needDelete bool              // whether to delete logs and data
-	upDataPath map[string]string // ip->up path
+	executor     operation.Executor  // execute commands on remote host
 
 	wg sync.WaitGroup
 
-	clusterOptions deploy.ClusterOptions
+	clusterOptions util.ClusterOptions
 }
 
-func NewGeminiStop(ops deploy.ClusterOptions, delete bool) Stop {
+func NewGeminiStop(ops util.ClusterOptions) Stop {
 	new := &GeminiStop{
 		remotes:        make(map[string]*config.RemoteHost),
-		stops:          make(map[string]*exec.StopAction),
+		stops:          make(map[string]*operation.StopAction),
 		sshClients:     make(map[string]*ssh.Client),
-		configurator:   config.NewGeminiConfigurator(ops.YamlPath, "", "", ""),
-		needDelete:     delete,
-		upDataPath:     make(map[string]string),
+		configurator:   config.NewGeminiConfigurator(ops.YamlPath, "", ""),
 		clusterOptions: ops,
 	}
 	return new
@@ -53,16 +61,18 @@ func NewGeminiStop(ops deploy.ClusterOptions, delete bool) Stop {
 
 func (s *GeminiStop) Prepare() error {
 	var err error
-	if err = s.configurator.RunWithoutGen(); err != nil {
+	if err = s.configurator.BuildConfig(); err != nil {
 		return err
 	}
 	conf := s.configurator.GetConfig()
 
 	if err = s.prepareRemotes(conf); err != nil {
+		fmt.Printf("Failed to establish SSH connections with all remote servers. The specific error is: %s\n", err)
 		return err
 	}
+	fmt.Println("Success to establish SSH connections with all remote servers.")
 
-	s.executor = exec.NewGeminiExecutor(s.sshClients)
+	s.executor = operation.NewGeminiExecutor(s.sshClients)
 
 	if err = s.prepareStopActions(conf); err != nil {
 		return err
@@ -73,7 +83,7 @@ func (s *GeminiStop) Prepare() error {
 
 func (s *GeminiStop) prepareRemotes(c *config.Config) error {
 	if c == nil {
-		return util.UnexpectedNil
+		return util.ErrUnexpectedNil
 	}
 
 	for ip, ssh := range c.SSHConfig {
@@ -85,8 +95,6 @@ func (s *GeminiStop) prepareRemotes(c *config.Config) error {
 			KeyPath:  s.clusterOptions.Key,
 			Typ:      s.clusterOptions.SshType,
 		}
-
-		s.upDataPath[ip] = ssh.UpDataPath
 	}
 
 	if err := s.tryConnect(); err != nil {
@@ -101,14 +109,13 @@ func (s *GeminiStop) tryConnect() error {
 		var err error
 		var sshClient *ssh.Client
 		switch r.Typ {
-		case config.SSH_PW:
+		case util.SSH_PW:
 			sshClient, err = util.NewSSH_PW(r.User, r.Password, r.Ip, r.SSHPort)
-		case config.SSH_KEY:
+		case util.SSH_KEY:
 			sshClient, err = util.NewSSH_Key(r.User, r.KeyPath, r.Ip, r.SSHPort)
 
 		}
 		if err != nil {
-			// TODO(Benevor):close all connection and exit
 			return err
 		}
 		s.sshClients[ip] = sshClient
@@ -121,61 +128,47 @@ func (s *GeminiStop) prepareStopActions(c *config.Config) error {
 	// ts-meta
 	for ip := range c.SSHConfig {
 		if s.stops[ip] == nil {
-			s.stops[ip] = &exec.StopAction{
+			s.stops[ip] = &operation.StopAction{
 				Remote: s.remotes[ip],
 			}
 		}
-		s.stops[ip].ProcessNames = append(s.stops[ip].ProcessNames, util.TS_META)
+		s.stops[ip].ProcessNames = append(s.stops[ip].ProcessNames, util.TsMeta)
 	}
 
 	// ts-sql
 	for ip := range c.SSHConfig {
 		if s.stops[ip] == nil {
-			s.stops[ip] = &exec.StopAction{
+			s.stops[ip] = &operation.StopAction{
 				Remote: s.remotes[ip],
 			}
 		}
-		s.stops[ip].ProcessNames = append(s.stops[ip].ProcessNames, util.TS_SQL)
+		s.stops[ip].ProcessNames = append(s.stops[ip].ProcessNames, util.TsSql)
 	}
 
 	// ts-store
 	for ip := range c.SSHConfig {
 		if s.stops[ip] == nil {
-			s.stops[ip] = &exec.StopAction{
+			s.stops[ip] = &operation.StopAction{
 				Remote: s.remotes[ip],
 			}
 		}
-		s.stops[ip].ProcessNames = append(s.stops[ip].ProcessNames, util.TS_STORE)
+		s.stops[ip].ProcessNames = append(s.stops[ip].ProcessNames, util.TsStore)
 	}
 	return nil
 }
 
 func (s *GeminiStop) Run() error {
 	if s.executor == nil {
-		return util.UnexpectedNil
+		return util.ErrUnexpectedNil
 	}
-
 	s.wg.Add(len(s.stops))
 	for _, action := range s.stops {
-		go func(action *exec.StopAction) {
+		go func(action *operation.StopAction) {
 			defer s.wg.Done()
 			s.executor.ExecStopAction(action)
 		}(action)
 	}
 	s.wg.Wait()
-
-	// need to delete all logs and data on remote hosts
-	if s.needDelete {
-		s.wg.Add(len(s.stops))
-		for ip := range s.stops {
-			go func(ip string) {
-				defer s.wg.Done()
-				command := fmt.Sprintf("rm -rf %s;", s.upDataPath[ip])
-				s.executor.ExecCommand(ip, command)
-			}(ip)
-		}
-		s.wg.Wait()
-	}
 	return nil
 }
 
