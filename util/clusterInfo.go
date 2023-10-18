@@ -20,6 +20,11 @@ import (
 	"io/ioutil"
 )
 
+type StartOptions struct {
+	User           string
+	SkipCreateUser bool
+}
+
 type ClusterOptions struct {
 	Name     string
 	Version  string

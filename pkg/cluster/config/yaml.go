@@ -30,6 +30,7 @@ type Yaml struct {
 
 type GlobalYaml struct {
 	SSHPort   int    `yaml:"ssh_port"`
+	User      string `yaml:"user"`
 	LogDir    string `yaml:"log_dir"`
 	DeployDir string `yaml:"deploy_dir"`
 

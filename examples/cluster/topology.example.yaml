@@ -3,6 +3,8 @@
 global:
   # SSH port of servers in the managed cluster.
   ssh_port: 22
+  # user who started the openGemini process.
+  user: "gemini"
   # openGemini Cluster log file storage directory.
   log_dir: "/gemini-deploy/logs"
   # Storage directory for cluster deployment files, startup scripts, and configuration files.

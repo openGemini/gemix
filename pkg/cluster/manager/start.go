@@ -48,11 +48,12 @@ type GeminiStarter struct {
 	executor     operation.Executor  // execute commands on remote host
 
 	clusterOptions util.ClusterOptions
+	startOptions   util.StartOptions
 
 	wg sync.WaitGroup
 }
 
-func NewGeminiStarter(ops util.ClusterOptions) Starter {
+func NewGeminiStarter(ops util.ClusterOptions, startOpts util.StartOptions) Starter {
 	return &GeminiStarter{
 		remotes:        make(map[string]*config.RemoteHost),
 		sshClients:     make(map[string]*ssh.Client),
@@ -60,6 +61,7 @@ func NewGeminiStarter(ops util.ClusterOptions) Starter {
 		configurator:   config.NewGeminiConfigurator(ops.YamlPath, filepath.Join(util.DownloadDst, ops.Version, util.LocalEtcRelPath, util.LocalConfName), filepath.Join(util.DownloadDst, ops.Version, util.LocalEtcRelPath)),
 		runs:           &operation.RunActions{},
 		clusterOptions: ops,
+		startOptions:   startOpts,
 	}
 }
 
@@ -69,6 +71,8 @@ func (d *GeminiStarter) PrepareForStart() error {
 		return err
 	}
 	conf := d.configurator.GetConfig()
+
+	d.startOptions.User = conf.CommonConfig.User
 
 	if err = d.prepareRemotes(conf, false); err != nil {
 		fmt.Printf("Failed to establish SSH connections with all remote servers. The specific error is: %s\n", err)
@@ -88,6 +92,27 @@ func (d *GeminiStarter) PrepareForStart() error {
 
 	if err = d.prepareRunActions(conf); err != nil {
 		return err
+	}
+
+	// create user if needed
+	if err = d.createUserIfNeed(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *GeminiStarter) createUserIfNeed() error {
+	if !d.startOptions.SkipCreateUser {
+		newUserName := d.startOptions.User
+		createUserCommand := fmt.Sprintf("useradd %s -s /sbin/nologin", newUserName)
+		for ip := range d.remotes {
+			_, err := d.executor.ExecCommand(ip, createUserCommand)
+			if err != nil {
+				fmt.Printf("Failed to create a new user on %s, error: %s", ip, err)
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -141,6 +166,7 @@ func (d *GeminiStarter) prepareRunActions(c *config.Config) error {
 	i := 1
 	for _, host := range c.CommonConfig.MetaHosts {
 		d.runs.MetaAction = append(d.runs.MetaAction, &operation.RunAction{
+			User: d.startOptions.User,
 			Info: &operation.RunInfo{
 				ScriptPath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteEtcRelPath, util.InstallScript),
 				Args: []string{util.TsMeta, d.remotes[host].LogPath,
@@ -158,6 +184,7 @@ func (d *GeminiStarter) prepareRunActions(c *config.Config) error {
 	i = 1
 	for _, host := range c.CommonConfig.SqlHosts {
 		d.runs.SqlAction = append(d.runs.SqlAction, &operation.RunAction{
+			User: d.startOptions.User,
 			Info: &operation.RunInfo{
 				ScriptPath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteEtcRelPath, util.InstallScript),
 				Args: []string{util.TsSql, d.remotes[host].LogPath,
@@ -175,6 +202,7 @@ func (d *GeminiStarter) prepareRunActions(c *config.Config) error {
 	i = 1
 	for _, host := range c.CommonConfig.StoreHosts {
 		d.runs.StoreAction = append(d.runs.StoreAction, &operation.RunAction{
+			User: d.startOptions.User,
 			Info: &operation.RunInfo{
 				ScriptPath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteEtcRelPath, util.InstallScript),
 				Args: []string{util.TsStore, d.remotes[host].LogPath,

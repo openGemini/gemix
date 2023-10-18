@@ -66,6 +66,7 @@ type RunInfo struct {
 }
 
 type RunAction struct {
+	User   string
 	Info   *RunInfo
 	Remote *config.RemoteHost
 }

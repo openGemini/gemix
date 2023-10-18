@@ -22,6 +22,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var startOpts util.StartOptions
+
 // startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start <cluster-name>",
@@ -50,8 +52,8 @@ var startCmd = &cobra.Command{
 	},
 }
 
-func StartCluster(ops util.ClusterOptions) error {
-	starter := manager.NewGeminiStarter(ops)
+func StartCluster(clusterOpts util.ClusterOptions) error {
+	starter := manager.NewGeminiStarter(clusterOpts, startOpts)
 	defer starter.Close()
 
 	if err := starter.PrepareForStart(); err != nil {
@@ -60,11 +62,12 @@ func StartCluster(ops util.ClusterOptions) error {
 	if err := starter.Start(); err != nil {
 		return err
 	}
-	fmt.Printf("Successfully started the openGemini cluster with version : %s\n", ops.Version)
+	fmt.Printf("Successfully started the openGemini cluster with version : %s\n", clusterOpts.Version)
 	return nil
 }
 
 func init() {
 	ClusterCmd.AddCommand(startCmd)
 	startCmd.Flags().StringP("name", "n", "", "cluster name")
+	startCmd.Flags().BoolVarP(&startOpts.SkipCreateUser, "skip-create-user", "", false, "(EXPERIMENTAL) Skip creating the user specified in topology.")
 }

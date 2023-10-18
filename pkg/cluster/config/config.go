@@ -18,6 +18,7 @@ type CommonConfig struct {
 	MetaHosts  []string //IPs
 	StoreHosts []string
 	SqlHosts   []string
+	User       string
 	Os         string
 	Arch       string
 }
@@ -86,6 +87,7 @@ func (c *GeminiConfigurator) GetConfig() *Config {
 }
 
 func (c *GeminiConfigurator) buildFromYaml(y Yaml) {
+	c.conf.CommonConfig.User = y.Global.User
 	c.conf.CommonConfig.Os = y.Global.OS
 	c.conf.CommonConfig.Arch = y.Global.Arch
 

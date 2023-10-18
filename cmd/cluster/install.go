@@ -26,7 +26,7 @@ import (
 
 // installCmd represents the install command
 var installCmd = &cobra.Command{
-	Use:   "install <cluster-name> <version> <topology.yaml>",
+	Use:   "install",
 	Short: "Install an openGemini cluster for production",
 	Long:  `Install an openGemini cluster for production. SSH connection will be used to deploy files, as well as create system users for running the service.`,
 	Run: func(cmd *cobra.Command, args []string) {
