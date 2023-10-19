@@ -21,19 +21,19 @@ The following table describes some commonly used basic commands.
 | command | description | parameter | example |
 | --- | --- | --- | --- |
 | `version` | display version number of gemix | no para | `./gemix version` |
-| `list` | display the version information of all components currently downloaded | no para | `./gemix list` |
+| `list` | display the available components of gemix | no para | `./gemix list` |
 | `cluster` | deploying and managing openGemini clusters                   | have subcommand |                           |
 
 The following table describes the subcommands of the `cluster` command.
 
 | command | description | parameter | example |
 | --- | --- | --- | --- |
-| `install` | install an openGemini cluster | --version<br />--yaml<br />--user<br />--key<br />--password | `./gemix cluster install --version v1.0.0 --yaml ./topology.example.yaml --user gemini --key ~/.ssh/id_rsa` |
-| `start`     | start an openGemini cluster and check the running status after startup | --version<br />--yaml<br />--user<br />--key<br />--password | `./gemix cluster start --version v1.0.0 --yaml ./topology.example.yaml --user gemini --key ~/.ssh/id_rsa` |
-| `stop`      | stop an openGemini cluster                                   | --yaml<br />--user<br />--key<br />--password                | `./gemix cluster stop --yaml ./topology.example.yaml --user gemini --password xxxxxx` |
-| `uninstall` | uninstall an openGemini cluster which means clearing data    | --version<br />--yaml<br />--user<br />--key<br />--password | `./gemix cluster uninstall --version v1.0.0 --yaml ./topology.example.yaml --user gemini --password xxxxxx` |
-| `status`    | Check the running status of the openGemini cluster, including port occupancy, disk capacity, etc | --yaml<br />--user<br />--key<br />--password | `./gemix cluster status --yaml  ./topology.example.yaml --user gemini --key ~/.ssh/id_rsa` |
-| `upgrade`   | upgrade an openGemini cluster to the specified version and uninstall the old one | --version<br />--old_version<br />--yaml<br />--user<br />--key<br />--password | `./gemix cluster upgrade --old_version v1.0.0 --version v1.0.1 --yaml ./topology.example.yaml --user gemini --password xxxxxx` |
+| `install` | install an openGemini cluster | --name<br />--version<br />--yaml<br />--user<br />--key<br />--password | `./gemix cluster install --name gemini-cluster --version v1.0.0 --yaml ./topology.example.yaml --user gemini --key ~/.ssh/id_rsa` |
+| `start`     | start an openGemini cluster and check the running status after startup | --name<br />--skip-create-user | `./gemix cluster start --name gemini-cluster --skip-create-user` |
+| `stop`      | stop an openGemini cluster                                   | --name          | `./gemix cluster stop --name gemini-cluster` |
+| `uninstall` | uninstall an openGemini cluster which means clearing data    | --name | `./gemix cluster uninstall --name gemini-cluster` |
+| `status`    | Check the running status of the openGemini cluster, including port occupancy, disk capacity, etc | --name | `./gemix cluster status --name gemini-cluster` |
+| `upgrade`   | upgrade an openGemini cluster to the specified version and uninstall the old one | --name<br />--version | `./gemix cluster upgrade --name gemini-cluster --version v1.0.1` |
 
 ## topology.example.yaml
 
@@ -52,6 +52,8 @@ The meaning of each part is as follows:
 global:
   # SSH port of servers in the managed cluster.
   ssh_port: 22
+  # user who started the openGemini process.
+  user: "gemini"
   # openGemini Cluster log file storage directory.
   log_dir: "/gemini-deploy/logs"
   # Storage directory for cluster deployment files, startup scripts, and configuration files.
