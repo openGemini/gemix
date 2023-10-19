@@ -1,10 +1,25 @@
+// Copyright 2023 Huawei Cloud Computing Technologies Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package config
 
 import (
-	"openGemini-UP/util"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/openGemini/gemix/util"
 )
 
 type HostFile struct {
@@ -23,7 +38,7 @@ type MetaPorts struct {
 	Gossip int
 }
 
-func GenConfs(y Yaml, template Toml, path string) {
+func GenConfs(y Yaml, template Toml, path string) error {
 	hosts := make(map[string]HostFile)
 	var metaPorts []MetaPorts
 
@@ -74,9 +89,8 @@ func GenConfs(y Yaml, template Toml, path string) {
 		}
 	}
 
-	// generate corresponding openGemini.conf for ervery host.
+	// generate corresponding config files for every host.
 	for _, host := range hosts {
-		fileName := filepath.Join(path, host.Ip+util.Remote_conf_suffix)
 		newToml := template
 		addr := host.Ip
 
@@ -160,6 +174,26 @@ func GenConfs(y Yaml, template Toml, path string) {
 		newToml.Gossip.BindAddress = addr
 		newToml.Gossip.Members = gossipMembers
 
-		GenNewToml(newToml, fileName)
+		if host.HasMeta {
+			fileName := filepath.Join(path, host.Ip, util.RemoteMetaConfName)
+			if err := GenNewToml(newToml, fileName); err != nil {
+				return err
+			}
+		}
+
+		if host.HasSql {
+			fileName := filepath.Join(path, host.Ip, util.RemoteSqlConfName)
+			if err := GenNewToml(newToml, fileName); err != nil {
+				return err
+			}
+		}
+
+		if host.HasStore {
+			fileName := filepath.Join(path, host.Ip, util.RemoteStoreConfName)
+			if err := GenNewToml(newToml, fileName); err != nil {
+				return err
+			}
+		}
 	}
+	return nil
 }

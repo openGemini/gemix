@@ -1,4 +1,18 @@
-package download
+// Copyright 2023 Huawei Cloud Computing Technologies Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package operation
 
 import (
 	"archive/tar"
@@ -7,11 +21,12 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"openGemini-UP/util"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/openGemini/gemix/util"
 )
 
 type DownloadOptions struct {
@@ -38,54 +53,35 @@ type GeminiDownloader struct {
 
 func NewGeminiDownloader(ops DownloadOptions) Downloader {
 	return &GeminiDownloader{
-		website:     util.Download_web,
+		website:     util.DownloadWeb,
 		version:     ops.Version,
-		typ:         "-" + ops.Os + "-" + ops.Arch + util.Download_pkg_suffix,
-		destination: util.Download_dst,
-		timeout:     util.Download_timeout,
+		typ:         "-" + ops.Os + "-" + ops.Arch + util.DownloadPkgSuffix,
+		destination: util.DownloadDst,
+		timeout:     util.DownloadTimeout,
 	}
-}
-
-func (d *GeminiDownloader) setVersion(v string) {
-	d.version = v
-}
-
-func (d *GeminiDownloader) setType(t string) {
-	d.typ = t
-}
-
-func (d *GeminiDownloader) setDestination(dst string) {
-	d.destination = dst
-}
-
-func (d *GeminiDownloader) setTimeout(t time.Duration) {
-	d.timeout = t
 }
 
 func (d *GeminiDownloader) spliceUrl() error {
 	if d.website == "" {
-		d.website = util.Download_web
+		d.website = util.DownloadWeb
 	}
 
 	if d.version == "" {
-		d.version = util.Download_default_version
+		latestVer, err := util.GetLatestVerFromCurl()
+		if err != nil {
+			return err
+		} else {
+			d.version = latestVer
+		}
 	}
 
-	if err := d.checkVersion(); err != nil {
-		return err
-	}
-
-	d.Url = d.website + "/" + d.version + "/" + util.Download_fill_char + d.version[1:] + d.typ
-	return nil
-}
-
-func (d *GeminiDownloader) checkVersion() error {
+	d.Url = d.website + "/" + d.version + "/" + util.DownloadFillChar + d.version[1:] + d.typ
 	return nil
 }
 
 func (d *GeminiDownloader) Run() error {
-	if _, err := os.Stat(util.Download_dst); os.IsNotExist(err) {
-		errDir := os.MkdirAll(util.Download_dst, 0755)
+	if _, err := os.Stat(util.DownloadDst); os.IsNotExist(err) {
+		errDir := os.MkdirAll(util.DownloadDst, 0750)
 		if errDir != nil {
 			return errDir
 		}
@@ -115,7 +111,7 @@ func (d *GeminiDownloader) Run() error {
 func (d *GeminiDownloader) isMissing() bool {
 	dir := filepath.Join(d.destination, d.version)
 	_, err := os.Stat(dir)
-	return os.IsNotExist(err)
+	return err != nil
 }
 
 func (d *GeminiDownloader) downloadFile() error {
@@ -126,6 +122,7 @@ func (d *GeminiDownloader) downloadFile() error {
 	// get HTTP_PROXY and parse
 	httpProxy := os.Getenv("HTTP_PROXY")
 	if httpProxy != "" {
+		fmt.Printf("use HTTP_PROXY: %s\n", httpProxy)
 		proxyParsedURL, err := url.Parse(httpProxy)
 		if err != nil {
 			fmt.Printf("parse httpProxy failed! %v\n", err)
@@ -160,9 +157,13 @@ func (d *GeminiDownloader) downloadFile() error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("GET request failed, status code: %d", resp.StatusCode)
+	}
+
 	// create local file
 	d.CleanFile(dir)
-	if err = os.Mkdir(dir, 0755); err != nil {
+	if err = os.Mkdir(dir, 0750); err != nil {
 		return err
 	}
 	fmt.Printf("mkdir: %s\n", dir)
@@ -186,58 +187,56 @@ func (d *GeminiDownloader) decompressFile() error {
 	targetPath := filepath.Join(d.destination, d.version)
 	fmt.Printf("start decompressing %s to %s\n", d.fileName, targetPath)
 
-	// open .tar.gz file
 	file, err := os.Open(d.fileName)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error opening source file:", err)
 		return err
 	}
 	defer file.Close()
 
-	// new gzip.Reader
-	gzReader, err := gzip.NewReader(file)
+	gzipReader, err := gzip.NewReader(file)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error creating gzip reader:", err)
 		return err
 	}
-	defer gzReader.Close()
+	defer gzipReader.Close()
 
-	// new tar.Reader
-	tarReader := tar.NewReader(gzReader)
+	tarReader := tar.NewReader(gzipReader)
+
 	for {
 		header, err := tarReader.Next()
+
 		if err == io.EOF {
 			break
 		}
+
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("Error reading tar header:", err)
 			return err
 		}
 
-		targetFilePath := filepath.Join(targetPath, header.Name)
-		// If it is a directory, create the corresponding directory
-		if header.Typeflag == tar.TypeDir {
-			err = os.MkdirAll(targetFilePath, header.FileInfo().Mode())
-			if err != nil {
-				fmt.Println(err)
-				return err
-			}
+		targetFile := filepath.Join(targetPath, header.Name)
+
+		if header.FileInfo().IsDir() {
 			continue
 		}
-		// If it is a file, create and copy the contents of the file
-		if header.Typeflag == tar.TypeReg {
-			targetFile, err := os.OpenFile(targetFilePath, os.O_CREATE|os.O_RDWR, header.FileInfo().Mode())
-			if err != nil {
-				fmt.Println(err)
-				return err
-			}
-			defer targetFile.Close()
 
-			_, err = io.Copy(targetFile, tarReader)
-			if err != nil {
-				fmt.Println(err)
-				return err
-			}
+		targetDir := filepath.Dir(targetFile)
+
+		if err := os.MkdirAll(targetDir, os.ModePerm); err != nil {
+			return err
+		}
+		file, err := os.Create(targetFile)
+		if err != nil {
+			fmt.Println("Error creating target file:", err)
+			return err
+		}
+		defer file.Close()
+
+		_, err = io.Copy(file, tarReader)
+		if err != nil {
+			fmt.Println("Error extracting file:", err)
+			return err
 		}
 	}
 

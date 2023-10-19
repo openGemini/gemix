@@ -1,4 +1,4 @@
-# Copyright 2022 Huawei Cloud Computing Technologies Co., Ltd.
+# Copyright 2023 Huawei Cloud Computing Technologies Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -77,4 +77,3 @@ golangci-lint-check: install-golangci-lint
 gotest:
 	@echo "running gotest begin."
 	@index=0; for s in $(PACKAGES_OPEN_GEMINI_TESTS); do index=$$(($$index+1)); if ! $(GOTEST) -failfast -short -v -count 1 -p 1 -timeout 10m -coverprofile coverage_$$index.txt -coverpkg ./... $$s; then $(FAILPOINT_DISABLE); exit 1; fi; done
-	@$(FAILPOINT_DISABLE)

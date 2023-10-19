@@ -1,66 +1,107 @@
+// Copyright 2023 Huawei Cloud Computing Technologies Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package util
 
-import "time"
+import (
+	"fmt"
+	"os"
+	"os/user"
+	"path/filepath"
+	"time"
+)
 
-// TODO:这里的大多数后面要改成从配置文件中读取，这里仅仅存储一个默认值
+var DownloadDst string
+var InstallScriptPath string
+var ClusterInfoDir string
+
+func init() {
+	execPath, _ := os.Getwd()
+	currentUser, err := user.Current()
+	if err != nil {
+		fmt.Println(err)
+	}
+	homeDirectory := currentUser.HomeDir
+	DownloadDst = filepath.Join(homeDirectory, ".gemix", "download")
+	InstallScriptPath = filepath.Join(execPath, "scripts/install.sh")
+	ClusterInfoDir = filepath.Join(homeDirectory, ".gemix", "cluster-info")
+
+	if err = os.MkdirAll(DownloadDst, 0750); err != nil {
+		fmt.Println(err)
+	}
+
+	if err = os.MkdirAll(ClusterInfoDir, 0750); err != nil {
+		fmt.Println(err)
+	}
+}
+
+// env
+const (
+	SshEnvUser = "OPENGEMINI_SSH_USER"
+	SshEnvKey  = "OPENGEMINI_SSH_KEY"
+	SshEnvPW   = "OPENGEMINI_SSH_PW"
+)
 
 // downloader
 const (
-	Download_web        = "https://github.com/openGemini/openGemini/releases/download"
-	Download_fill_char  = "openGemini-"
-	Download_pkg_suffix = ".tar.gz"
+	DownloadWeb       = "https://github.com/openGemini/openGemini/releases/download"
+	DownloadFillChar  = "openGemini-"
+	DownloadPkgSuffix = ".tar.gz"
 
 	// fixed values
-	Download_dst     = "./data"
-	Download_timeout = 2 * time.Minute
+	DownloadTimeout = 2 * time.Minute
 
 	// default values
-	Download_default_version = "v1.0.0"
-	Download_default_os      = "linux"
-	Download_default_arch    = "amd64"
+	DownloadLatestUrl   = "https://github.com/openGemini/openGemini/releases/latest"
+	DownloadDefaultOs   = "linux"
+	DownloadDefaultArch = "amd64"
 )
 
 // local
 const (
-	Local_bin_rel_path = "usr/bin"
-	Local_etc_rel_path = "etc"
-	Local_conf_name    = "openGemini.conf"
+	LocalBinRelPath = "usr/bin"
+	LocalEtcRelPath = "etc"
+	LocalConfName   = "openGemini.conf"
 )
 
 // config
 const (
-	Install_script_path = "./scripts/install.sh"
-	Remote_conf_suffix  = "-openGemini.conf"
+	RemoteMetaConfName  = "openGemini-meta.conf"
+	RemoteSqlConfName   = "openGemini-sql.conf"
+	RemoteStoreConfName = "openGemini-store.conf"
 )
 
 // file name
 const (
-	TS_META        = "ts-meta" // process name & bin file name
-	TS_SQL         = "ts-sql"
-	TS_STORE       = "ts-store"
-	Install_Script = "install.sh"
+	TsMeta        = "ts-meta" // process name & bin file name
+	TsSql         = "ts-sql"
+	TsStore       = "ts-store"
+	InstallScript = "install.sh"
 )
 
 // remote
 const (
-	// openGemini-UP
-	Remote_bin_rel_path = "bin"
-	Remote_etc_rel_path = "etc"
+	// gemix
+	RemoteBinRelPath = "bin"
+	RemoteEtcRelPath = "etc"
 
 	// openGemini
-	Remote_pid_path   = "pid"
-	Remote_pid_suffix = ".pid"
-	Remote_log_suffix = ".log"
+	RemotePidPath   = "pid"
+	RemotePidSuffix = ".pid"
+	RemoteLogSuffix = ".log"
 
-	META_extra_log  = "meta_extra"
-	SQL_extra_log   = "sql_extra"
-	STORE_extra_log = "store_extra"
-	META            = "meta"
-	SQL             = "sql"
-	STORE           = "store"
-)
-
-// version
-const (
-	VersionFile = "version"
+	MetaExtraLog  = "meta_extra"
+	SqlExtraLog   = "sql_extra"
+	StoreExtraLog = "store_extra"
 )

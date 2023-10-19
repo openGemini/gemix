@@ -1,4 +1,4 @@
-module openGemini-UP
+module github.com/openGemini/gemix
 
 go 1.18
 

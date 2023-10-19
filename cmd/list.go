@@ -1,13 +1,22 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
+// Copyright 2023 Huawei Cloud Computing Technologies Co., Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package cmd
 
 import (
-	"io/ioutil"
-	"openGemini-UP/util"
+	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
@@ -16,77 +25,24 @@ import (
 // listCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "list of database components",
-	Long:  `Display the version information of all components currently downloaded.`,
+	Short: "list of available components",
+	Long:  `Display the available components of Gemix.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		result := list(util.Download_dst)
+		fmt.Println("Available components:")
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"Version", "Component"})
-
-		for key, values := range result {
-			row := []string{key, ""}
-			for _, value := range values {
-				row[1] += value + "\n"
-			}
+		data := [][]string{
+			{"cluster", "openGemini", "Deploy an openGemini cluster for production"},
+			{"opengemini-dashboard", "openGemini", "TODO"},
+		}
+		table.SetColWidth(100)
+		table.SetHeader([]string{"Name", "Owner", "Description"})
+		for _, row := range data {
 			table.Append(row)
 		}
-
 		table.Render()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(listCmd)
-}
-
-func list(path string) map[string][]string {
-	var result = make(map[string][]string)
-
-	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() && isBinPath(path) {
-			files, err := ioutil.ReadDir(path)
-			if err != nil {
-				return err
-			}
-			version := getBinPathVersion(path)
-			for _, file := range files {
-				switch file.Name() {
-				case "ts-sql":
-					result[version] = append(result[version], "ts-sql")
-				case "ts-meta":
-					result[version] = append(result[version], "ts-meta")
-				case "ts-store":
-					result[version] = append(result[version], "ts-store")
-				case "ts-cli":
-					result[version] = append(result[version], "ts-cli")
-				case "ts-server":
-					result[version] = append(result[version], "ts-server")
-				case "ts-monitor":
-					result[version] = append(result[version], "ts-monitor")
-				}
-			}
-		}
-		return nil
-	})
-	return result
-}
-
-func isBinPath(path string) bool {
-	if len(path) > 3 && path[len(path)-3:] == "bin" {
-		return true
-	}
-	return false
-}
-
-func getBinPathVersion(path string) string {
-	if !isBinPath(path) {
-		return ""
-	}
-	if len(path) <= 14 {
-		return ""
-	}
-	return path[len(path)-14 : len(path)-8]
+	RootCmd.AddCommand(listCmd)
 }
