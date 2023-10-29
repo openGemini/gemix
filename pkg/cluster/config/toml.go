@@ -22,16 +22,19 @@ import (
 )
 
 type Toml struct {
-	Common  CommonToml  `toml:"common"`
-	Meta    MetaToml    `toml:"meta"`
-	Http    HttpToml    `toml:"http"`
-	Data    DataToml    `toml:"data"`
-	Logging LoggingToml `toml:"logging"`
-	Gossip  GossipToml  `toml:"gossip"`
+	Common    CommonToml    `toml:"common"`
+	Meta      MetaToml      `toml:"meta"`
+	Http      HttpToml      `toml:"http"`
+	Data      DataToml      `toml:"data"`
+	Logging   LoggingToml   `toml:"logging"`
+	Gossip    GossipToml    `toml:"gossip"`
+	Monitor   MonitorToml   `toml:"monitor"`
+	Retention RetentionToml `toml:"retention"`
 }
 
 type CommonToml struct {
 	MetaJoin []string `toml:"meta-join"`
+	HaPolicy string   `toml:"ha-policy"`
 }
 
 type MetaToml struct {
@@ -43,6 +46,11 @@ type MetaToml struct {
 
 type HttpToml struct {
 	BindAddress string `toml:"bind-address"`
+
+	AuthEnabled      bool   `toml:"auth-enabled"`
+	HttpsEnabled     bool   `toml:"https-enabled"`
+	HttpsCertificate string `toml:"https-certificate"`
+	HttpsPrivateKey  string `toml:"https-private-key"`
 }
 
 type DataToml struct {
@@ -65,6 +73,22 @@ type GossipToml struct {
 	StoreBindPort int      `toml:"store-bind-port"`
 	MetaBindPort  int      `toml:"meta-bind-port"`
 	Members       []string `toml:"members"`
+}
+
+type MonitorToml struct {
+	Pushers       string `toml:"pushers"`
+	StoreEnabled  bool   `toml:"store-enabled"`
+	StoreDatabase string `toml:"store-interval"`
+	StoreInterval string `toml:"store-database"`
+	StorePath     string `toml:"store-path"`
+	Compress      bool   `toml:"compress"`
+	HttpEndpoint  string `toml:"http-endpoint"`
+	Username      string `toml:"username"`
+	Password      string `toml:"password"`
+}
+
+type RetentionToml struct {
+	CheckInterval string `toml:"check-interval"`
 }
 
 func ReadFromToml(tomlPath string) (Toml, error) {

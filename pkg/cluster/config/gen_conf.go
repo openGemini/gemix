@@ -91,13 +91,12 @@ func GenConfs(y Yaml, template Toml, path string) error {
 
 	// generate corresponding config files for every host.
 	for _, host := range hosts {
-		newToml := template
 		addr := host.Ip
-
-		// common
-		newToml.Common.MetaJoin = metaJoins
 		// meta
 		if host.HasMeta {
+			newToml := template
+
+			// meta
 			if host.TsMeta.ClientPort != 0 {
 				newToml.Meta.HttpBindAddress = addr + ":" + strconv.Itoa(host.TsMeta.ClientPort)
 			} else {
@@ -117,30 +116,90 @@ func GenConfs(y Yaml, template Toml, path string) error {
 				newToml.Meta.Dir = host.TsMeta.DataDir
 			}
 
+			// common
+			newToml.Common.MetaJoin = metaJoins
+			newToml.Common.HaPolicy = host.TsMeta.Config.HaPolicy
+
+			// logging
 			if host.TsMeta.LogDir != "" {
 				newToml.Logging.Path = host.TsMeta.LogDir
 			}
 
+			// gossip
 			if host.TsMeta.GossipPort != 0 {
 				newToml.Gossip.MetaBindPort = host.TsMeta.GossipPort
+			}
+			newToml.Gossip.BindAddress = addr
+			newToml.Gossip.Members = gossipMembers
+
+			// monitor
+			newToml.Monitor = MonitorToml{Pushers: host.TsMeta.Config.Pushers, StoreEnabled: host.TsMeta.Config.StoreEnabled,
+				StoreDatabase: host.TsMeta.Config.StoreDatabase,
+				StoreInterval: host.TsMeta.Config.StoreInterval,
+				StorePath:     host.TsMeta.Config.StorePath,
+				Compress:      host.TsMeta.Config.Compress,
+				HttpEndpoint:  host.TsMeta.Config.HttpEndpoint,
+				Username:      host.TsMeta.Config.Username,
+				Password:      host.TsMeta.Config.Password}
+
+			fileName := filepath.Join(path, host.Ip, util.RemoteMetaConfName)
+			if err := GenNewToml(newToml, fileName); err != nil {
+				return err
 			}
 		}
 
 		// http
 		if host.HasSql {
+			newToml := template
+
+			// http
 			if host.TsSql.Port != 0 {
 				newToml.Http.BindAddress = addr + ":" + strconv.Itoa(host.TsSql.Port)
 			} else {
 				newToml.Http.BindAddress = strings.Replace(newToml.Http.BindAddress, newToml.Http.BindAddress[:8], addr, -1)
 			}
+			newToml.Http.AuthEnabled = host.TsSql.Config.AuthEnabled
+			newToml.Http.HttpsEnabled = host.TsSql.Config.HttpsEnabled
+			newToml.Http.HttpsCertificate = host.TsSql.Config.HttpsCertificate
+			newToml.Http.HttpsPrivateKey = host.TsSql.Config.HttpsPrivateKey
 
+			// common
+			newToml.Common.MetaJoin = metaJoins
+			newToml.Common.HaPolicy = host.TsSql.Config.HaPolicy
+
+			// logging
 			if host.TsSql.LogDir != "" {
 				newToml.Logging.Path = host.TsSql.LogDir
+			}
+
+			// gossip
+			newToml.Gossip.BindAddress = addr
+			newToml.Gossip.Members = gossipMembers
+
+			// monitor
+			newToml.Monitor = MonitorToml{Pushers: host.TsSql.Config.Pushers, StoreEnabled: host.TsSql.Config.StoreEnabled,
+				StoreDatabase: host.TsSql.Config.StoreDatabase,
+				StoreInterval: host.TsSql.Config.StoreInterval,
+				StorePath:     host.TsSql.Config.StorePath,
+				Compress:      host.TsSql.Config.Compress,
+				HttpEndpoint:  host.TsSql.Config.HttpEndpoint,
+				Username:      host.TsSql.Config.Username,
+				Password:      host.TsSql.Config.Password}
+
+			// retention
+			newToml.Retention.CheckInterval = host.TsSql.Config.CheckInterval
+
+			fileName := filepath.Join(path, host.Ip, util.RemoteSqlConfName)
+			if err := GenNewToml(newToml, fileName); err != nil {
+				return err
 			}
 		}
 
 		// data
 		if host.HasStore {
+			newToml := template
+
+			// data
 			if host.TsStore.IngestPort != 0 {
 				newToml.Data.StoreIngestAddr = addr + ":" + strconv.Itoa(host.TsStore.IngestPort)
 			} else {
@@ -159,36 +218,32 @@ func GenConfs(y Yaml, template Toml, path string) error {
 				newToml.Data.StoreMetaDir = host.TsStore.MetaDir
 			}
 
+			// common
+			newToml.Common.MetaJoin = metaJoins
+			newToml.Common.HaPolicy = host.TsStore.Config.HaPolicy
+
+			// logging
 			if host.TsStore.LogDir != "" {
 				newToml.Logging.Path = host.TsStore.LogDir
 			}
 
+			// gossip
 			if host.TsStore.GossipPort != 0 {
 				newToml.Gossip.StoreBindPort = host.TsStore.GossipPort
 			}
-		}
+			newToml.Gossip.BindAddress = addr
+			newToml.Gossip.Members = gossipMembers
 
-		// logging (already processed)
+			// monitor
+			newToml.Monitor = MonitorToml{Pushers: host.TsStore.Config.Pushers, StoreEnabled: host.TsStore.Config.StoreEnabled,
+				StoreDatabase: host.TsStore.Config.StoreDatabase,
+				StoreInterval: host.TsStore.Config.StoreInterval,
+				StorePath:     host.TsStore.Config.StorePath,
+				Compress:      host.TsStore.Config.Compress,
+				HttpEndpoint:  host.TsStore.Config.HttpEndpoint,
+				Username:      host.TsStore.Config.Username,
+				Password:      host.TsStore.Config.Password}
 
-		// gossip
-		newToml.Gossip.BindAddress = addr
-		newToml.Gossip.Members = gossipMembers
-
-		if host.HasMeta {
-			fileName := filepath.Join(path, host.Ip, util.RemoteMetaConfName)
-			if err := GenNewToml(newToml, fileName); err != nil {
-				return err
-			}
-		}
-
-		if host.HasSql {
-			fileName := filepath.Join(path, host.Ip, util.RemoteSqlConfName)
-			if err := GenNewToml(newToml, fileName); err != nil {
-				return err
-			}
-		}
-
-		if host.HasStore {
 			fileName := filepath.Join(path, host.Ip, util.RemoteStoreConfName)
 			if err := GenNewToml(newToml, fileName); err != nil {
 				return err

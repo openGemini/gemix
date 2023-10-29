@@ -22,10 +22,11 @@ import (
 )
 
 type Yaml struct {
-	Global  GlobalYaml  `yaml:"global"`
-	TsMeta  []MetaYaml  `yaml:"ts-meta"`
-	TsSql   []SqlYaml   `yaml:"ts-sql"`
-	TsStore []StoreYaml `yaml:"ts-store"`
+	Global       GlobalYaml   `yaml:"global"`
+	ServerConfig ServerConfig `yaml:"server_config"`
+	TsMeta       []MetaYaml   `yaml:"ts-meta"`
+	TsSql        []SqlYaml    `yaml:"ts-sql"`
+	TsStore      []StoreYaml  `yaml:"ts-store"`
 }
 
 type GlobalYaml struct {
@@ -36,6 +37,12 @@ type GlobalYaml struct {
 
 	OS   string `yaml:"os"`
 	Arch string `yaml:"arch"`
+}
+
+type ServerConfig struct {
+	TsMeta  MetaYamlConfig  `yaml:"ts-meta"`
+	TsSql   SqlYamlConfig   `yaml:"ts-sql"`
+	TsStore StoreYamlConfig `yaml:"ts-store"`
 }
 
 type MetaYaml struct {
@@ -51,6 +58,8 @@ type MetaYaml struct {
 	RaftPort   int    `yaml:"raft_port"`
 	GossipPort int    `yaml:"gossip_port"`
 	DataDir    string `yaml:"data_dir"`
+
+	Config MetaYamlConfig `yaml:"config"`
 }
 
 type SqlYaml struct {
@@ -63,6 +72,8 @@ type SqlYaml struct {
 	// do not need default value
 	Port       int `yaml:"port"`
 	FlightPort int `yaml:"flight_port"`
+
+	Config SqlYamlConfig `yaml:"config"`
 }
 
 type StoreYaml struct {
@@ -78,6 +89,55 @@ type StoreYaml struct {
 	GossipPort int    `yaml:"gossip_port"`
 	DataDir    string `yaml:"data_dir"`
 	MetaDir    string `yaml:"meta_dir"`
+
+	Config StoreYamlConfig `yaml:"config"`
+}
+
+type MetaYamlConfig struct {
+	HaPolicy string `yaml:"common.ha-policy"`
+
+	Pushers       string `yaml:"monitor.pushers"`
+	StoreEnabled  bool   `yaml:"monitor.store-enabled"`
+	StoreDatabase string `yaml:"monitor.store-interval"`
+	StoreInterval string `yaml:"monitor.store-database"`
+	StorePath     string `yaml:"monitor.store-path"`
+	Compress      bool   `yaml:"monitor.compress"`
+	HttpEndpoint  string `yaml:"monitor.http-endpoint"`
+	Username      string `yaml:"monitor.username"`
+	Password      string `yaml:"monitor.password"`
+}
+type SqlYamlConfig struct {
+	AuthEnabled      bool   `yaml:"http.auth-enabled"`
+	HttpsEnabled     bool   `yaml:"http.https-enabled"`
+	HttpsCertificate string `yaml:"http.https-certificate"`
+	HttpsPrivateKey  string `yaml:"http.https-private-key"`
+
+	HaPolicy string `yaml:"common.ha-policy"`
+
+	CheckInterval string `yaml:"retention.check-interval"`
+
+	Pushers       string `yaml:"monitor.pushers"`
+	StoreEnabled  bool   `yaml:"monitor.store-enabled"`
+	StoreDatabase string `yaml:"monitor.store-interval"`
+	StoreInterval string `yaml:"monitor.store-database"`
+	StorePath     string `yaml:"monitor.store-path"`
+	Compress      bool   `yaml:"monitor.compress"`
+	HttpEndpoint  string `yaml:"monitor.http-endpoint"`
+	Username      string `yaml:"monitor.username"`
+	Password      string `yaml:"monitor.password"`
+}
+type StoreYamlConfig struct {
+	HaPolicy string `yaml:"common.ha-policy"`
+
+	Pushers       string `yaml:"monitor.pushers"`
+	StoreEnabled  bool   `yaml:"monitor.store-enabled"`
+	StoreDatabase string `yaml:"monitor.store-interval"`
+	StoreInterval string `yaml:"monitor.store-database"`
+	StorePath     string `yaml:"monitor.store-path"`
+	Compress      bool   `yaml:"monitor.compress"`
+	HttpEndpoint  string `yaml:"monitor.http-endpoint"`
+	Username      string `yaml:"monitor.username"`
+	Password      string `yaml:"monitor.password"`
 }
 
 func checkRequiredOptions(y Yaml) bool {
@@ -118,6 +178,31 @@ func updataWithGlobalDefaults(y *Yaml) {
 		if y.TsMeta[i].DeployDir == "" {
 			y.TsMeta[i].DeployDir = y.Global.DeployDir
 		}
+
+		if y.TsMeta[i].Config.HaPolicy == "" {
+			y.TsMeta[i].Config.HaPolicy = y.ServerConfig.TsMeta.HaPolicy
+		}
+		if y.TsMeta[i].Config.Pushers == "" {
+			y.TsMeta[i].Config.Pushers = y.ServerConfig.TsMeta.Pushers
+		}
+		if y.TsMeta[i].Config.StoreDatabase == "" {
+			y.TsMeta[i].Config.StoreDatabase = y.ServerConfig.TsMeta.StoreDatabase
+		}
+		if y.TsMeta[i].Config.StoreInterval == "" {
+			y.TsMeta[i].Config.StoreInterval = y.ServerConfig.TsMeta.StoreInterval
+		}
+		if y.TsMeta[i].Config.StorePath == "" {
+			y.TsMeta[i].Config.StorePath = y.ServerConfig.TsMeta.StorePath
+		}
+		if y.TsMeta[i].Config.HttpEndpoint == "" {
+			y.TsMeta[i].Config.HttpEndpoint = y.ServerConfig.TsMeta.HttpEndpoint
+		}
+		if y.TsMeta[i].Config.Username == "" {
+			y.TsMeta[i].Config.Username = y.ServerConfig.TsMeta.Username
+		}
+		if y.TsMeta[i].Config.Password == "" {
+			y.TsMeta[i].Config.Password = y.ServerConfig.TsMeta.Password
+		}
 	}
 	for i := range y.TsSql {
 		if y.TsSql[i].SSHPort == 0 {
@@ -129,6 +214,41 @@ func updataWithGlobalDefaults(y *Yaml) {
 		if y.TsSql[i].DeployDir == "" {
 			y.TsSql[i].DeployDir = y.Global.DeployDir
 		}
+
+		if y.TsSql[i].Config.HttpsCertificate == "" {
+			y.TsSql[i].Config.HttpsCertificate = y.ServerConfig.TsSql.HttpsCertificate
+		}
+		if y.TsSql[i].Config.HttpsPrivateKey == "" {
+			y.TsSql[i].Config.HttpsPrivateKey = y.ServerConfig.TsSql.HttpsPrivateKey
+		}
+		if y.TsSql[i].Config.CheckInterval == "" {
+			y.TsSql[i].Config.CheckInterval = y.ServerConfig.TsSql.CheckInterval
+		}
+
+		if y.TsSql[i].Config.HaPolicy == "" {
+			y.TsSql[i].Config.HaPolicy = y.ServerConfig.TsSql.HaPolicy
+		}
+		if y.TsSql[i].Config.Pushers == "" {
+			y.TsSql[i].Config.Pushers = y.ServerConfig.TsSql.Pushers
+		}
+		if y.TsSql[i].Config.StoreDatabase == "" {
+			y.TsSql[i].Config.StoreDatabase = y.ServerConfig.TsMeta.StoreDatabase
+		}
+		if y.TsSql[i].Config.StoreInterval == "" {
+			y.TsSql[i].Config.StoreInterval = y.ServerConfig.TsSql.StoreInterval
+		}
+		if y.TsSql[i].Config.StorePath == "" {
+			y.TsSql[i].Config.StorePath = y.ServerConfig.TsSql.StorePath
+		}
+		if y.TsSql[i].Config.HttpEndpoint == "" {
+			y.TsSql[i].Config.HttpEndpoint = y.ServerConfig.TsSql.HttpEndpoint
+		}
+		if y.TsSql[i].Config.Username == "" {
+			y.TsSql[i].Config.Username = y.ServerConfig.TsSql.Username
+		}
+		if y.TsSql[i].Config.Password == "" {
+			y.TsSql[i].Config.Password = y.ServerConfig.TsSql.Password
+		}
 	}
 	for i := range y.TsStore {
 		if y.TsStore[i].SSHPort == 0 {
@@ -139,6 +259,31 @@ func updataWithGlobalDefaults(y *Yaml) {
 		}
 		if y.TsStore[i].DeployDir == "" {
 			y.TsStore[i].DeployDir = y.Global.DeployDir
+		}
+
+		if y.TsStore[i].Config.HaPolicy == "" {
+			y.TsStore[i].Config.HaPolicy = y.ServerConfig.TsStore.HaPolicy
+		}
+		if y.TsStore[i].Config.Pushers == "" {
+			y.TsStore[i].Config.Pushers = y.ServerConfig.TsStore.Pushers
+		}
+		if y.TsStore[i].Config.StoreDatabase == "" {
+			y.TsStore[i].Config.StoreDatabase = y.ServerConfig.TsStore.StoreDatabase
+		}
+		if y.TsStore[i].Config.StoreInterval == "" {
+			y.TsStore[i].Config.StoreInterval = y.ServerConfig.TsStore.StoreInterval
+		}
+		if y.TsStore[i].Config.StorePath == "" {
+			y.TsStore[i].Config.StorePath = y.ServerConfig.TsStore.StorePath
+		}
+		if y.TsStore[i].Config.HttpEndpoint == "" {
+			y.TsStore[i].Config.HttpEndpoint = y.ServerConfig.TsStore.HttpEndpoint
+		}
+		if y.TsStore[i].Config.Username == "" {
+			y.TsStore[i].Config.Username = y.ServerConfig.TsStore.Username
+		}
+		if y.TsStore[i].Config.Password == "" {
+			y.TsStore[i].Config.Password = y.ServerConfig.TsStore.Password
 		}
 	}
 }

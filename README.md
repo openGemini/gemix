@@ -63,6 +63,46 @@ global:
   # Supported values: "amd64", "arm64" (default: "amd64").
   arch: "amd64"
 
+server_config:
+  ts-meta:
+    common.ha-policy: "replication"
+    monitor.pushers: "" 
+    monitor.store-enabled: false
+    monitor.store-database: "_internal"
+    monitor.store-interval: "10s"
+    monitor.store-path: "/tmp/openGemini/metric/{{id}}/metric.data"
+    monitor.compress: false
+    monitor.http-endpoint: "127.0.0.1:8086"
+    monitor.username: ""
+    monitor.password: ""
+  ts-sql:
+    http.auth-enabled: true
+    http.https-enabled: true
+    http.https-certificate: "/etc/ssl/openGemini-selfsigned.crt"
+    http.https-private-key: "/etc/ssl/openGemini-selfsigned.key"
+    common.ha-policy: "replication"
+    retention.check-interval: "10s"
+    monitor.pushers: "" 
+    monitor.store-enabled: false
+    monitor.store-database: "_internal"
+    monitor.store-interval: "10s"
+    monitor.store-path: "/tmp/openGemini/metric/{{id}}/metric.data"
+    monitor.compress: false
+    monitor.http-endpoint: "127.0.0.1:8086"
+    monitor.username: ""
+    monitor.password: ""
+  ts-store:
+    common.ha-policy: "replication"
+    monitor.pushers: "" 
+    monitor.store-enabled: false
+    monitor.store-database: "_internal"
+    monitor.store-interval: "10s"
+    monitor.store-path: "/tmp/openGemini/metric/{{id}}/metric.data"
+    monitor.compress: false
+    monitor.http-endpoint: "127.0.0.1:8086"
+    monitor.username: ""
+    monitor.password: ""
+
 # Server configs are used to specify the configuration of ts-meta Servers.
 ts-meta:
   # The ip address of the ts-meta Server.
@@ -83,6 +123,17 @@ ts-meta:
     log_dir: "/gemini-deploy/log"
     # Storage directory for cluster deployment files, startup scripts, and configuration files. (same on same server)
     deploy_dir: "/gemini-deploy"
+    config:
+      common.ha-policy: "replication"
+      monitor.pushers: "" 
+      monitor.store-enabled: false
+      monitor.store-database: "_internal"
+      monitor.store-interval: "10s"
+      monitor.store-path: "/tmp/openGemini/metric/{{id}}/metric.data"
+      monitor.compress: false
+      monitor.http-endpoint: "127.0.0.1:8086"
+      monitor.username: ""
+      monitor.password: ""
   - host: 10.0.1.12
     # SSH port of the server. (same on same server)
     ssh_port: 22
@@ -100,6 +151,17 @@ ts-meta:
     log_dir: "/gemini-deploy/log"
     # Storage directory for cluster deployment files, startup scripts, and configuration files. (same on same server)
     deploy_dir: "/gemini-deploy"
+    config:
+      common.ha-policy: "replication"
+      monitor.pushers: "" 
+      monitor.store-enabled: false
+      monitor.store-database: "_internal"
+      monitor.store-interval: "10s"
+      monitor.store-path: "/tmp/openGemini/metric/{{id}}/metric.data"
+      monitor.compress: false
+      monitor.http-endpoint: "127.0.0.1:8086"
+      monitor.username: ""
+      monitor.password: ""
   - host: 10.0.1.13
     # SSH port of the server. (same on same server)
     ssh_port: 22
@@ -117,6 +179,17 @@ ts-meta:
     log_dir: "/gemini-deploy/log"
     # Storage directory for cluster deployment files, startup scripts, and configuration files. (same on same server)
     deploy_dir: "/gemini-deploy"
+    config:
+      common.ha-policy: "replication"
+      monitor.pushers: "" 
+      monitor.store-enabled: false
+      monitor.store-database: "_internal"
+      monitor.store-interval: "10s"
+      monitor.store-path: "/tmp/openGemini/metric/{{id}}/metric.data"
+      monitor.compress: false
+      monitor.http-endpoint: "127.0.0.1:8086"
+      monitor.username: ""
+      monitor.password: ""
 
 # Server configs are used to specify the configuration of ts-sql Servers.
 ts-sql:
@@ -132,6 +205,22 @@ ts-sql:
     log_dir: "/gemini-deploy/log"
     # Storage directory for cluster deployment files, startup scripts, and configuration files. (same on same server)
     deploy_dir: "/gemini-deploy"
+    config:
+      http.auth-enabled: true
+      http.https-enabled: true
+      http.https-certificate: "/etc/ssl/openGemini-selfsigned.crt"
+      http.https-private-key: "/etc/ssl/openGemini-selfsigned.key"
+      common.ha-policy: "replication"
+      retention.check-interval: "10s"
+      monitor.pushers: "" 
+      monitor.store-enabled: false
+      monitor.store-database: "_internal"
+      monitor.store-interval: "10s"
+      monitor.store-path: "/tmp/openGemini/metric/{{id}}/metric.data"
+      monitor.compress: false
+      monitor.http-endpoint: "127.0.0.1:8086"
+      monitor.username: ""
+      monitor.password: ""
   - host: 10.0.1.15
     # SSH port of the server. (same on same server)
     ssh_port: 22
@@ -143,6 +232,22 @@ ts-sql:
     log_dir: "/gemini-deploy/log"
     # Storage directory for cluster deployment files, startup scripts, and configuration files. (same on same server)
     deploy_dir: "/gemini-deploy"
+    config:
+      http.auth-enabled: true
+      http.https-enabled: true
+      http.https-certificate: "/etc/ssl/openGemini-selfsigned.crt"
+      http.https-private-key: "/etc/ssl/openGemini-selfsigned.key"
+      common.ha-policy: "replication"
+      retention.check-interval: "10s"
+      monitor.pushers: "" 
+      monitor.store-enabled: false
+      monitor.store-database: "_internal"
+      monitor.store-interval: "10s"
+      monitor.store-path: "/tmp/openGemini/metric/{{id}}/metric.data"
+      monitor.compress: false
+      monitor.http-endpoint: "127.0.0.1:8086"
+      monitor.username: ""
+      monitor.password: ""
   - host: 10.0.1.16
     # SSH port of the server. (same on same server)
     ssh_port: 22
@@ -154,6 +259,22 @@ ts-sql:
     log_dir: "/gemini-deploy/log"
     # Storage directory for cluster deployment files, startup scripts, and configuration files. (same on same server)
     deploy_dir: "/gemini-deploy"
+    config:
+      http.auth-enabled: true
+      http.https-enabled: true
+      http.https-certificate: "/etc/ssl/openGemini-selfsigned.crt"
+      http.https-private-key: "/etc/ssl/openGemini-selfsigned.key"
+      common.ha-policy: "replication"
+      retention.check-interval: "10s"
+      monitor.pushers: "" 
+      monitor.store-enabled: false
+      monitor.store-database: "_internal"
+      monitor.store-interval: "10s"
+      monitor.store-path: "/tmp/openGemini/metric/{{id}}/metric.data"
+      monitor.compress: false
+      monitor.http-endpoint: "127.0.0.1:8086"
+      monitor.username: ""
+      monitor.password: ""
 
 # Server configs are used to specify the configuration of ts-store Servers.
 ts-store:
@@ -175,6 +296,17 @@ ts-store:
     log_dir: "/gemini-deploy/log"
     # Storage directory for cluster deployment files, startup scripts, and configuration files. (same on same server)
     deploy_dir: "/gemini-deploy"
+    config:
+      common.ha-policy: "replication"
+      monitor.pushers: "" 
+      monitor.store-enabled: false
+      monitor.store-database: "_internal"
+      monitor.store-interval: "10s"
+      monitor.store-path: "/tmp/openGemini/metric/{{id}}/metric.data"
+      monitor.compress: false
+      monitor.http-endpoint: "127.0.0.1:8086"
+      monitor.username: ""
+      monitor.password: ""
   - host: 10.0.1.18
     # SSH port of the server. (same on same server)
     ssh_port: 22
@@ -192,6 +324,17 @@ ts-store:
     log_dir: "/gemini-deploy/log"
     # Storage directory for cluster deployment files, startup scripts, and configuration files. (same on same server)
     deploy_dir: "/gemini-deploy"
+    config:
+      common.ha-policy: "replication"
+      monitor.pushers: "" 
+      monitor.store-enabled: false
+      monitor.store-database: "_internal"
+      monitor.store-interval: "10s"
+      monitor.store-path: "/tmp/openGemini/metric/{{id}}/metric.data"
+      monitor.compress: false
+      monitor.http-endpoint: "127.0.0.1:8086"
+      monitor.username: ""
+      monitor.password: ""
   - host: 10.0.1.19
     # SSH port of the server. (same on same server)
     ssh_port: 22
@@ -209,4 +352,15 @@ ts-store:
     log_dir: "/gemini-deploy/log"
     # Storage directory for cluster deployment files, startup scripts, and configuration files. (same on same server)
     deploy_dir: "/gemini-deploy"
+    config:
+      common.ha-policy: "replication"
+      monitor.pushers: "" 
+      monitor.store-enabled: false
+      monitor.store-database: "_internal"
+      monitor.store-interval: "10s"
+      monitor.store-path: "/tmp/openGemini/metric/{{id}}/metric.data"
+      monitor.compress: false
+      monitor.http-endpoint: "127.0.0.1:8086"
+      monitor.username: ""
+      monitor.password: ""
 ```
