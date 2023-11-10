@@ -114,8 +114,6 @@ type SqlYamlConfig struct {
 
 	HaPolicy string `yaml:"common.ha-policy"`
 
-	CheckInterval string `yaml:"retention.check-interval"`
-
 	Pushers       string `yaml:"monitor.pushers"`
 	StoreEnabled  bool   `yaml:"monitor.store-enabled"`
 	StoreDatabase string `yaml:"monitor.store-interval"`
@@ -138,6 +136,8 @@ type StoreYamlConfig struct {
 	HttpEndpoint  string `yaml:"monitor.http-endpoint"`
 	Username      string `yaml:"monitor.username"`
 	Password      string `yaml:"monitor.password"`
+
+	CheckInterval string `yaml:"retention.check-interval"`
 }
 
 func checkRequiredOptions(y Yaml) bool {
@@ -185,6 +185,9 @@ func updataWithGlobalDefaults(y *Yaml) {
 		if y.TsMeta[i].Config.Pushers == "" {
 			y.TsMeta[i].Config.Pushers = y.ServerConfig.TsMeta.Pushers
 		}
+		if !y.TsMeta[i].Config.StoreEnabled {
+			y.TsMeta[i].Config.StoreEnabled = y.ServerConfig.TsMeta.StoreEnabled
+		}
 		if y.TsMeta[i].Config.StoreDatabase == "" {
 			y.TsMeta[i].Config.StoreDatabase = y.ServerConfig.TsMeta.StoreDatabase
 		}
@@ -218,11 +221,15 @@ func updataWithGlobalDefaults(y *Yaml) {
 		if y.TsSql[i].Config.HttpsCertificate == "" {
 			y.TsSql[i].Config.HttpsCertificate = y.ServerConfig.TsSql.HttpsCertificate
 		}
+
+		if !y.TsSql[i].Config.AuthEnabled {
+			y.TsSql[i].Config.AuthEnabled = y.ServerConfig.TsSql.AuthEnabled
+		}
+		if !y.TsSql[i].Config.HttpsEnabled {
+			y.TsSql[i].Config.HttpsEnabled = y.ServerConfig.TsSql.HttpsEnabled
+		}
 		if y.TsSql[i].Config.HttpsPrivateKey == "" {
 			y.TsSql[i].Config.HttpsPrivateKey = y.ServerConfig.TsSql.HttpsPrivateKey
-		}
-		if y.TsSql[i].Config.CheckInterval == "" {
-			y.TsSql[i].Config.CheckInterval = y.ServerConfig.TsSql.CheckInterval
 		}
 
 		if y.TsSql[i].Config.HaPolicy == "" {
@@ -230,6 +237,9 @@ func updataWithGlobalDefaults(y *Yaml) {
 		}
 		if y.TsSql[i].Config.Pushers == "" {
 			y.TsSql[i].Config.Pushers = y.ServerConfig.TsSql.Pushers
+		}
+		if !y.TsSql[i].Config.StoreEnabled {
+			y.TsSql[i].Config.StoreEnabled = y.ServerConfig.TsSql.StoreEnabled
 		}
 		if y.TsSql[i].Config.StoreDatabase == "" {
 			y.TsSql[i].Config.StoreDatabase = y.ServerConfig.TsMeta.StoreDatabase
@@ -267,6 +277,9 @@ func updataWithGlobalDefaults(y *Yaml) {
 		if y.TsStore[i].Config.Pushers == "" {
 			y.TsStore[i].Config.Pushers = y.ServerConfig.TsStore.Pushers
 		}
+		if !y.TsStore[i].Config.StoreEnabled {
+			y.TsStore[i].Config.StoreEnabled = y.ServerConfig.TsStore.StoreEnabled
+		}
 		if y.TsStore[i].Config.StoreDatabase == "" {
 			y.TsStore[i].Config.StoreDatabase = y.ServerConfig.TsStore.StoreDatabase
 		}
@@ -284,6 +297,10 @@ func updataWithGlobalDefaults(y *Yaml) {
 		}
 		if y.TsStore[i].Config.Password == "" {
 			y.TsStore[i].Config.Password = y.ServerConfig.TsStore.Password
+		}
+
+		if y.TsStore[i].Config.CheckInterval == "" {
+			y.TsStore[i].Config.CheckInterval = y.ServerConfig.TsStore.CheckInterval
 		}
 	}
 }
