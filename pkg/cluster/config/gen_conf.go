@@ -186,9 +186,6 @@ func GenConfs(y Yaml, template Toml, path string) error {
 				Username:      host.TsSql.Config.Username,
 				Password:      host.TsSql.Config.Password}
 
-			// retention
-			newToml.Retention.CheckInterval = host.TsSql.Config.CheckInterval
-
 			fileName := filepath.Join(path, host.Ip, util.RemoteSqlConfName)
 			if err := GenNewToml(newToml, fileName); err != nil {
 				return err
@@ -226,6 +223,9 @@ func GenConfs(y Yaml, template Toml, path string) error {
 			if host.TsStore.LogDir != "" {
 				newToml.Logging.Path = host.TsStore.LogDir
 			}
+
+			// retention
+			newToml.Retention.CheckInterval = host.TsStore.Config.CheckInterval
 
 			// gossip
 			if host.TsStore.GossipPort != 0 {
