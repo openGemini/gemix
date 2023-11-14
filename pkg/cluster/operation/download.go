@@ -19,6 +19,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -87,31 +88,36 @@ func (d *GeminiDownloader) Run() error {
 		}
 	}
 
-	if d.isMissing() { // check whether need to download the files
-		dir := filepath.Join(d.destination, d.version)
-		if err := d.spliceUrl(); err != nil {
-			d.CleanFile(dir)
-			return err
-		}
-
+	if err := d.spliceUrl(); err != nil {
+		return err
+	}
+	isExisted, err := d.isExistedFile()
+	if err != nil {
+		return err
+	}
+	if !isExisted { // check whether need to download the files
 		if err := d.downloadFile(); err != nil {
-			d.CleanFile(dir)
 			return err
 		}
+	}
 
-		if err := d.decompressFile(); err != nil {
-			d.CleanFile(dir)
-			return err
-		}
+	if err := d.decompressFile(); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (d *GeminiDownloader) isMissing() bool {
+func (d *GeminiDownloader) isExistedFile() (bool, error) {
 	dir := filepath.Join(d.destination, d.version)
-	_, err := os.Stat(dir)
-	return err != nil
+	fs, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return false, err
+	} else if len(fs) != 1 {
+		return false, fmt.Errorf("more than one offline installation package file at %s", dir)
+	}
+	d.fileName = filepath.Join(dir, fs[0].Name())
+	return true, nil
 }
 
 func (d *GeminiDownloader) downloadFile() error {
