@@ -15,9 +15,9 @@
 package config
 
 import (
-	"errors"
 	"io/ioutil"
 
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -75,7 +75,6 @@ type SqlYaml struct {
 
 	Config SqlYamlConfig `yaml:"config"`
 }
-
 type StoreYaml struct {
 	Host string `yaml:"host"`
 	// default value in GlobalYaml
@@ -124,6 +123,7 @@ type SqlYamlConfig struct {
 	Username      string `yaml:"monitor.username"`
 	Password      string `yaml:"monitor.password"`
 }
+
 type StoreYamlConfig struct {
 	HaPolicy string `yaml:"common.ha-policy"`
 

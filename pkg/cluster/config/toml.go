@@ -92,9 +92,8 @@ type RetentionToml struct {
 }
 
 func ReadFromToml(tomlPath string) (Toml, error) {
-	t := Toml{}
-	var err error
-	if _, err = toml.DecodeFile(tomlPath, &t); err != nil {
+	var t Toml
+	if _, err := toml.DecodeFile(tomlPath, &t); err != nil {
 		return t, err
 	}
 	return t, nil
@@ -125,7 +124,7 @@ func GenNewToml(t Toml, path string) error {
 		return err
 	}
 
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0640)
 	if err != nil {
 		return err
 	}

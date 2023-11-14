@@ -34,7 +34,7 @@ var RootCmd = &cobra.Command{
 }
 
 func Execute() {
-	RootCmd.AddCommand(cluster.ClusterCmd)
+	RootCmd.AddCommand(cluster.RootCmd)
 	err := RootCmd.Execute()
 	if err != nil {
 		os.Exit(1)

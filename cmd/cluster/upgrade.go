@@ -76,7 +76,6 @@ func UpgradeCluster(ops util.ClusterOptions, newV string) error {
 }
 
 func init() {
-	ClusterCmd.AddCommand(upgradeCmd)
 	upgradeCmd.Flags().StringP("name", "n", "", "cluster name")
 	upgradeCmd.Flags().StringP("version", "v", "", "new cluster version")
 }

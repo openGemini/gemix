@@ -58,6 +58,5 @@ func StopCluster(ops util.ClusterOptions) error {
 }
 
 func init() {
-	ClusterCmd.AddCommand(stopCmd)
 	stopCmd.Flags().StringP("name", "n", "", "cluster name")
 }

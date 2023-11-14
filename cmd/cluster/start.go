@@ -67,7 +67,6 @@ func StartCluster(clusterOpts util.ClusterOptions) error {
 }
 
 func init() {
-	ClusterCmd.AddCommand(startCmd)
 	startCmd.Flags().StringP("name", "n", "", "cluster name")
 	startCmd.Flags().BoolVarP(&startOpts.SkipCreateUser, "skip-create-user", "", false, "(EXPERIMENTAL) Skip creating the user specified in topology.")
 }
