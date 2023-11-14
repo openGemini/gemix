@@ -57,6 +57,5 @@ func PatrolCluster(ops util.ClusterOptions) error {
 }
 
 func init() {
-	ClusterCmd.AddCommand(statusCmd)
 	statusCmd.Flags().StringP("name", "n", "", "cluster name")
 }

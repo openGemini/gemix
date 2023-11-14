@@ -24,31 +24,46 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// installCmd represents the install command
-var installCmd = &cobra.Command{
-	Use:   "install",
-	Short: "Install an openGemini cluster for production",
-	Long:  `Install an openGemini cluster for production. SSH connection will be used to deploy files, as well as create system users for running the service.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		ops, err := getClusterInstallOptions(cmd)
-		if err != nil {
-			fmt.Println(err)
-			fmt.Println(cmd.UsageString())
-			return
-		}
+func installCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "install",
+		Short:        "Install an openGemini cluster for production",
+		Long:         `Install an openGemini cluster for production. SSH connection will be used to deploy files, as well as create system users for running the service.`,
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ops, err := getClusterInstallOptions(cmd)
+			if err != nil {
+				return err
+			}
 
-		err = InstallCluster(ops)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+			err = InstallCluster(ops)
+			if err != nil {
+				return err
+			}
 
-		// save cluster infomation
-		err = util.SaveClusterOptionsToFile(filepath.Join(util.ClusterInfoDir, ops.Name), ops)
-		if err != nil {
-			fmt.Println(err)
-		}
-	},
+			// save cluster information
+			err = util.SaveClusterOptionsToFile(filepath.Join(util.ClusterInfoDir, ops.Name), ops)
+			return err
+		},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			fmt.Println("install validate func args", args)
+			switch len(args) {
+			case 2:
+				return nil, cobra.ShellCompDirectiveDefault
+			default:
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+		},
+	}
+
+	cmd.Flags().StringP("name", "n", "", "cluster name")
+	cmd.Flags().StringP("version", "v", "", "component version")
+	cmd.Flags().StringP("yaml", "y", "", "The path to cluster topology yaml file")
+	cmd.Flags().StringP("user", "u", "", "The user name to login via SSH. The user must has root (or sudo) privilege.")
+	cmd.Flags().StringP("key", "k", "", "The path of the SSH identity file. If specified, public key authentication will be used.")
+	cmd.Flags().StringP("password", "p", "", "The password of target hosts. If specified, password authentication will be used.")
+	// TODO: skip-create-user
+	return cmd
 }
 
 func InstallCluster(ops util.ClusterOptions) error {
@@ -63,16 +78,6 @@ func InstallCluster(ops util.ClusterOptions) error {
 	}
 	fmt.Printf("Successfully installed the openGemini cluster with version : %s\n", ops.Version)
 	return nil
-}
-
-func init() {
-	ClusterCmd.AddCommand(installCmd)
-	installCmd.Flags().StringP("name", "n", "", "cluster name")
-	installCmd.Flags().StringP("version", "v", "", "component version")
-	installCmd.Flags().StringP("yaml", "y", "", "The path to cluster topology yaml file")
-	installCmd.Flags().StringP("user", "u", "", "The user name to login via SSH. The user must has root (or sudo) privilege.")
-	installCmd.Flags().StringP("key", "k", "", "The path of the SSH identity file. If specified, public key authentication will be used.")
-	installCmd.Flags().StringP("password", "p", "", "The password of target hosts. If specified, password authentication will be used.")
 }
 
 func getClusterInstallOptions(cmd *cobra.Command) (util.ClusterOptions, error) {
@@ -133,6 +138,7 @@ func getClusterInstallOptions(cmd *cobra.Command) (util.ClusterOptions, error) {
 		}
 	}
 
+	// TODO: check path is valid
 	if yPath, _ := cmd.Flags().GetString("yaml"); yPath == "" {
 		return ops, fmt.Errorf("the path of cluster configuration file must be specified")
 	} else {

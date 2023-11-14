@@ -58,6 +58,5 @@ func UninstallCluster(ops util.ClusterOptions) error {
 }
 
 func init() {
-	ClusterCmd.AddCommand(uninstallCmd)
 	uninstallCmd.Flags().StringP("name", "n", "", "cluster name")
 }

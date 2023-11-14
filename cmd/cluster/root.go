@@ -22,18 +22,37 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// clusterCmd represents the cluster command
-var ClusterCmd = &cobra.Command{
-	Use:   "cluster",
-	Short: "Deploy an openGemini cluster for production",
-	Long:  `Deploy an openGemini cluster for production`,
-	Example: `
+var RootCmd *cobra.Command // represents the cluster command
+
+func init() {
+	RootCmd = &cobra.Command{
+		Use:           "cluster",
+		Short:         "Deploy an openGemini cluster for production",
+		Long:          `Deploy an openGemini cluster for production`,
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Example: `
 $ gemix cluster install
 $ gemix cluster start
 $ gemix cluster stop
 $ gemix cluster uninstall
 `,
-	Run: func(cmd *cobra.Command, args []string) {},
+		Run: func(cmd *cobra.Command, args []string) {
+			//if err = spec.Initialize("cluster"); err != nil {
+			//	return err
+			//}
+			//cm = manager.NewManager("openGemini", openGeminiSpec, spec.openGeminiComponentVersion, log)
+		},
+	}
+
+	RootCmd.AddCommand(
+		installCmd(),
+		startCmd,
+		stopCmd,
+		uninstallCmd,
+		statusCmd,
+		upgradeCmd,
+	)
 }
 
 func ReadClusterOptionsByName(cmd *cobra.Command) (util.ClusterOptions, error) {
