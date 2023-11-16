@@ -113,9 +113,12 @@ func (d *GeminiDownloader) isExistedFile() (bool, error) {
 	fs, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return false, err
-	} else if len(fs) != 1 {
+	} else if len(fs) > 1 {
 		return false, fmt.Errorf("more than one offline installation package file at %s", dir)
+	} else if len(fs) == 0 {
+		return false, nil
 	}
+	// offline installation package
 	d.fileName = filepath.Join(dir, fs[0].Name())
 	return true, nil
 }
