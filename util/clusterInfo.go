@@ -17,7 +17,7 @@ package util
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 type StartOptions struct {
@@ -41,12 +41,12 @@ func SaveClusterOptionsToFile(filename string, cluster ClusterOptions) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(filename, data, 0750)
+	err = os.WriteFile(filename, data, 0750)
 	return err
 }
 
 func LoadClusterOptionsFromFile(filename string) (ClusterOptions, error) {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return ClusterOptions{}, err
 	}
@@ -61,7 +61,7 @@ func LoadClusterOptionsFromFile(filename string) (ClusterOptions, error) {
 }
 
 func CheckClusterNameValid(name string) bool {
-	files, err := ioutil.ReadDir(ClusterInfoDir)
+	files, err := os.ReadDir(ClusterInfoDir)
 	if err != nil {
 		fmt.Println("Error reading directory:", err)
 		return false
@@ -76,7 +76,7 @@ func CheckClusterNameValid(name string) bool {
 }
 
 func CheckClusterNameExist(name string) bool {
-	files, err := ioutil.ReadDir(ClusterInfoDir)
+	files, err := os.ReadDir(ClusterInfoDir)
 	if err != nil {
 		fmt.Println("Error reading directory:", err)
 		return false

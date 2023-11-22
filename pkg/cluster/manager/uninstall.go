@@ -23,7 +23,7 @@ import (
 
 	"github.com/openGemini/gemix/pkg/cluster/config"
 	"github.com/openGemini/gemix/pkg/cluster/operation"
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/utils"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -45,10 +45,10 @@ type GeminiUninstaller struct {
 
 	wg sync.WaitGroup
 
-	clusterOptions util.ClusterOptions
+	clusterOptions utils.ClusterOptions
 }
 
-func NewGeminiUninstaller(ops util.ClusterOptions) Uninstall {
+func NewGeminiUninstaller(ops utils.ClusterOptions) Uninstall {
 	new := &GeminiUninstaller{
 		remotes:        make(map[string]*config.RemoteHost),
 		sshClients:     make(map[string]*ssh.Client),
@@ -79,7 +79,7 @@ func (s *GeminiUninstaller) Prepare() error {
 
 func (s *GeminiUninstaller) prepareRemotes(c *config.Config) error {
 	if c == nil {
-		return util.ErrUnexpectedNil
+		return utils.ErrUnexpectedNil
 	}
 
 	for ip, ssh := range c.SSHConfig {
@@ -107,10 +107,10 @@ func (s *GeminiUninstaller) tryConnect() error {
 		var err error
 		var sshClient *ssh.Client
 		switch r.Typ {
-		case util.SSH_PW:
-			sshClient, err = util.NewSSH_PW(r.User, r.Password, r.Ip, r.SSHPort)
-		case util.SSH_KEY:
-			sshClient, err = util.NewSSH_Key(r.User, r.KeyPath, r.Ip, r.SSHPort)
+		case utils.SSH_PW:
+			sshClient, err = utils.NewSSH_PW(r.User, r.Password, r.Ip, r.SSHPort)
+		case utils.SSH_KEY:
+			sshClient, err = utils.NewSSH_Key(r.User, r.KeyPath, r.Ip, r.SSHPort)
 
 		}
 		if err != nil {
@@ -123,7 +123,7 @@ func (s *GeminiUninstaller) tryConnect() error {
 
 func (s *GeminiUninstaller) Run() error {
 	if s.executor == nil {
-		return util.ErrUnexpectedNil
+		return utils.ErrUnexpectedNil
 	}
 
 	errChan := make(chan error, len(s.remotes))
@@ -169,7 +169,7 @@ func (s *GeminiUninstaller) Run() error {
 	if has_err {
 		return errors.New("uninstall cluster failed")
 	} else {
-		err := os.Remove(filepath.Join(util.ClusterInfoDir, s.clusterOptions.Name))
+		err := os.Remove(filepath.Join(utils.ClusterInfoDir, s.clusterOptions.Name))
 		if err != nil {
 			return errors.New("error deleting the cluster info file")
 		}

@@ -15,7 +15,7 @@
 package config
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -307,7 +307,7 @@ func updataWithGlobalDefaults(y *Yaml) {
 
 func ReadFromYaml(yamlPath string) (Yaml, error) {
 	var err error
-	yamlFile, err := ioutil.ReadFile(yamlPath)
+	yamlFile, err := os.ReadFile(yamlPath)
 	if err != nil {
 		return Yaml{}, err
 	}

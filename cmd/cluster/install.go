@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 
 	"github.com/openGemini/gemix/pkg/cluster/manager"
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +42,7 @@ func installCmd() *cobra.Command {
 			}
 
 			// save cluster information
-			err = util.SaveClusterOptionsToFile(filepath.Join(util.ClusterInfoDir, ops.Name), ops)
+			err = utils.SaveClusterOptionsToFile(filepath.Join(utils.ClusterInfoDir, ops.Name), ops)
 			return err
 		},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -66,7 +66,7 @@ func installCmd() *cobra.Command {
 	return cmd
 }
 
-func InstallCluster(ops util.ClusterOptions) error {
+func InstallCluster(ops utils.ClusterOptions) error {
 	installer := manager.NewGeminiInstaller(ops)
 	defer installer.Close()
 
@@ -80,17 +80,17 @@ func InstallCluster(ops util.ClusterOptions) error {
 	return nil
 }
 
-func getClusterInstallOptions(cmd *cobra.Command) (util.ClusterOptions, error) {
-	var ops util.ClusterOptions
+func getClusterInstallOptions(cmd *cobra.Command) (utils.ClusterOptions, error) {
+	var ops utils.ClusterOptions
 	if name, _ := cmd.Flags().GetString("name"); name == "" {
 		return ops, fmt.Errorf("the cluster name is required")
-	} else if !util.CheckClusterNameValid(name) {
+	} else if !utils.CheckClusterNameValid(name) {
 		return ops, fmt.Errorf("the cluster name is not valid")
 	} else {
 		ops.Name = name
 	}
 	if version, _ := cmd.Flags().GetString("version"); version == "" {
-		latestVer, err := util.GetLatestVerFromCurl()
+		latestVer, err := utils.GetLatestVerFromCurl()
 		if err != nil {
 			return ops, err
 		} else {
@@ -100,7 +100,7 @@ func getClusterInstallOptions(cmd *cobra.Command) (util.ClusterOptions, error) {
 		ops.Version = version
 	}
 	if user, _ := cmd.Flags().GetString("user"); user == "" {
-		has, value := GetEnv(util.SshEnvUser)
+		has, value := GetEnv(utils.SshEnvUser)
 		if has {
 			ops.User = value
 		} else {
@@ -112,15 +112,15 @@ func getClusterInstallOptions(cmd *cobra.Command) (util.ClusterOptions, error) {
 	password, _ := cmd.Flags().GetString("password")
 	key, _ := cmd.Flags().GetString("key")
 	if password == "" && key == "" {
-		hasKey, key := GetEnv(util.SshEnvKey)
+		hasKey, key := GetEnv(utils.SshEnvKey)
 		if hasKey {
 			ops.Key = key
-			ops.SshType = util.SSH_KEY
+			ops.SshType = utils.SSH_KEY
 		} else {
-			hasPW, pw := GetEnv(util.SshEnvPW)
+			hasPW, pw := GetEnv(utils.SshEnvPW)
 			if hasPW {
 				ops.Password = pw
-				ops.SshType = util.SSH_PW
+				ops.SshType = utils.SSH_PW
 			} else {
 				return ops, fmt.Errorf("the password and key need at least one")
 			}
@@ -132,9 +132,9 @@ func getClusterInstallOptions(cmd *cobra.Command) (util.ClusterOptions, error) {
 		ops.Key = key
 		ops.Password = password
 		if key != "" {
-			ops.SshType = util.SSH_KEY
+			ops.SshType = utils.SSH_KEY
 		} else {
-			ops.SshType = util.SSH_PW
+			ops.SshType = utils.SSH_PW
 		}
 	}
 

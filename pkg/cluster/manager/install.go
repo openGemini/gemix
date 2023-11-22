@@ -22,7 +22,7 @@ import (
 
 	"github.com/openGemini/gemix/pkg/cluster/config"
 	"github.com/openGemini/gemix/pkg/cluster/operation"
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/utils"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
@@ -51,19 +51,19 @@ type GeminiInstaller struct {
 	configurator config.Configurator // conf reader
 	executor     operation.Executor  // execute commands on remote host
 
-	clusterOptions util.ClusterOptions
+	clusterOptions utils.ClusterOptions
 
 	wg sync.WaitGroup
 }
 
-func NewGeminiInstaller(ops util.ClusterOptions) Installer {
+func NewGeminiInstaller(ops utils.ClusterOptions) Installer {
 	return &GeminiInstaller{
 		remotes:        make(map[string]*config.RemoteHost),
 		uploads:        make(map[string]*UploadAction),
 		sshClients:     make(map[string]*ssh.Client),
 		sftpClients:    make(map[string]*sftp.Client),
 		version:        ops.Version,
-		configurator:   config.NewGeminiConfigurator(ops.YamlPath, filepath.Join(util.DownloadDst, ops.Version, util.LocalEtcRelPath, util.LocalConfName), filepath.Join(util.DownloadDst, ops.Version, util.LocalEtcRelPath)),
+		configurator:   config.NewGeminiConfigurator(ops.YamlPath, filepath.Join(utils.DownloadDst, ops.Version, utils.LocalEtcRelPath, utils.LocalConfName), filepath.Join(utils.DownloadDst, ops.Version, utils.LocalEtcRelPath)),
 		clusterOptions: ops,
 	}
 }
@@ -111,7 +111,7 @@ func (d *GeminiInstaller) PrepareForInstall() error {
 
 func (d *GeminiInstaller) prepareRemotes(c *config.Config, needSftp bool) error {
 	if c == nil {
-		return util.ErrUnexpectedNil
+		return utils.ErrUnexpectedNil
 	}
 
 	for ip, ssh := range c.SSHConfig {
@@ -139,10 +139,10 @@ func (d *GeminiInstaller) tryConnect(c *config.Config, needSftp bool) error {
 		var err error
 		var sshClient *ssh.Client
 		switch r.Typ {
-		case util.SSH_PW:
-			sshClient, err = util.NewSSH_PW(r.User, r.Password, r.Ip, r.SSHPort)
-		case util.SSH_KEY:
-			sshClient, err = util.NewSSH_Key(r.User, r.KeyPath, r.Ip, r.SSHPort)
+		case utils.SSH_PW:
+			sshClient, err = utils.NewSSH_PW(r.User, r.Password, r.Ip, r.SSHPort)
+		case utils.SSH_KEY:
+			sshClient, err = utils.NewSSH_Key(r.User, r.KeyPath, r.Ip, r.SSHPort)
 
 		}
 		if err != nil {
@@ -151,7 +151,7 @@ func (d *GeminiInstaller) tryConnect(c *config.Config, needSftp bool) error {
 		d.sshClients[ip] = sshClient
 
 		if needSftp {
-			sftpClient, err := util.NewSftpClient(sshClient)
+			sftpClient, err := utils.NewSftpClient(sshClient)
 			if err != nil {
 				return err
 			}
@@ -167,7 +167,7 @@ func (d *GeminiInstaller) tryConnect(c *config.Config, needSftp bool) error {
 	if needSftp {
 		for _, host := range c.CommonConfig.MetaHosts {
 			pwd, _ := d.sftpClients[host].Getwd()
-			confPath := filepath.Join(util.DownloadDst, d.version, util.LocalEtcRelPath, host, util.RemoteMetaConfName)
+			confPath := filepath.Join(utils.DownloadDst, d.version, utils.LocalEtcRelPath, host, utils.RemoteMetaConfName)
 			hostToml, _ := config.ReadFromToml(confPath)
 			// Convert relative paths in openGemini.conf to absolute paths.
 			hostToml = config.ConvertToml(hostToml, pwd)
@@ -177,7 +177,7 @@ func (d *GeminiInstaller) tryConnect(c *config.Config, needSftp bool) error {
 		}
 		for _, host := range c.CommonConfig.SqlHosts {
 			pwd, _ := d.sftpClients[host].Getwd()
-			confPath := filepath.Join(util.DownloadDst, d.version, util.LocalEtcRelPath, host, util.RemoteSqlConfName)
+			confPath := filepath.Join(utils.DownloadDst, d.version, utils.LocalEtcRelPath, host, utils.RemoteSqlConfName)
 			hostToml, _ := config.ReadFromToml(confPath)
 			// Convert relative paths in openGemini.conf to absolute paths.
 			hostToml = config.ConvertToml(hostToml, pwd)
@@ -187,7 +187,7 @@ func (d *GeminiInstaller) tryConnect(c *config.Config, needSftp bool) error {
 		}
 		for _, host := range c.CommonConfig.StoreHosts {
 			pwd, _ := d.sftpClients[host].Getwd()
-			confPath := filepath.Join(util.DownloadDst, d.version, util.LocalEtcRelPath, host, util.RemoteStoreConfName)
+			confPath := filepath.Join(utils.DownloadDst, d.version, utils.LocalEtcRelPath, host, utils.RemoteStoreConfName)
 			hostToml, _ := config.ReadFromToml(confPath)
 			// Convert relative paths in openGemini.conf to absolute paths.
 			hostToml = config.ConvertToml(hostToml, pwd)
@@ -201,11 +201,11 @@ func (d *GeminiInstaller) tryConnect(c *config.Config, needSftp bool) error {
 
 func (d *GeminiInstaller) prepareForUpload() error {
 	if d.executor == nil {
-		return util.ErrUnexpectedNil
+		return utils.ErrUnexpectedNil
 	}
 	for ip, r := range d.remotes {
-		binPath := filepath.Join(r.UpDataPath, d.version, util.RemoteBinRelPath)
-		etcPath := filepath.Join(r.UpDataPath, d.version, util.RemoteEtcRelPath)
+		binPath := filepath.Join(r.UpDataPath, d.version, utils.RemoteBinRelPath)
+		etcPath := filepath.Join(r.UpDataPath, d.version, utils.RemoteEtcRelPath)
 		command := fmt.Sprintf("mkdir -p %s; mkdir -p %s;", binPath, etcPath)
 		if _, err := d.executor.ExecCommand(ip, command); err != nil {
 			return err
@@ -223,14 +223,14 @@ func (d *GeminiInstaller) prepareUploadActions(c *config.Config) error {
 			}
 		}
 		d.uploads[host].uploadInfo = append(d.uploads[host].uploadInfo, &config.UploadInfo{
-			LocalPath:  filepath.Join(util.DownloadDst, d.version, util.LocalBinRelPath, util.TsMeta),
-			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteBinRelPath),
-			FileName:   util.TsMeta,
+			LocalPath:  filepath.Join(utils.DownloadDst, d.version, utils.LocalBinRelPath, utils.TsMeta),
+			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteBinRelPath),
+			FileName:   utils.TsMeta,
 		})
 		d.uploads[host].uploadInfo = append(d.uploads[host].uploadInfo, &config.UploadInfo{
-			LocalPath:  filepath.Join(util.DownloadDst, d.version, util.LocalEtcRelPath, host, util.RemoteMetaConfName),
-			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteEtcRelPath),
-			FileName:   util.RemoteMetaConfName,
+			LocalPath:  filepath.Join(utils.DownloadDst, d.version, utils.LocalEtcRelPath, host, utils.RemoteMetaConfName),
+			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteEtcRelPath),
+			FileName:   utils.RemoteMetaConfName,
 		})
 	}
 
@@ -242,14 +242,14 @@ func (d *GeminiInstaller) prepareUploadActions(c *config.Config) error {
 			}
 		}
 		d.uploads[host].uploadInfo = append(d.uploads[host].uploadInfo, &config.UploadInfo{
-			LocalPath:  filepath.Join(util.DownloadDst, d.version, util.LocalBinRelPath, util.TsSql),
-			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteBinRelPath),
-			FileName:   util.TsSql,
+			LocalPath:  filepath.Join(utils.DownloadDst, d.version, utils.LocalBinRelPath, utils.TsSql),
+			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteBinRelPath),
+			FileName:   utils.TsSql,
 		})
 		d.uploads[host].uploadInfo = append(d.uploads[host].uploadInfo, &config.UploadInfo{
-			LocalPath:  filepath.Join(util.DownloadDst, d.version, util.LocalEtcRelPath, host, util.RemoteSqlConfName),
-			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteEtcRelPath),
-			FileName:   util.RemoteSqlConfName,
+			LocalPath:  filepath.Join(utils.DownloadDst, d.version, utils.LocalEtcRelPath, host, utils.RemoteSqlConfName),
+			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteEtcRelPath),
+			FileName:   utils.RemoteSqlConfName,
 		})
 	}
 
@@ -261,14 +261,14 @@ func (d *GeminiInstaller) prepareUploadActions(c *config.Config) error {
 			}
 		}
 		d.uploads[host].uploadInfo = append(d.uploads[host].uploadInfo, &config.UploadInfo{
-			LocalPath:  filepath.Join(util.DownloadDst, d.version, util.LocalBinRelPath, util.TsStore),
-			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteBinRelPath),
-			FileName:   util.TsStore,
+			LocalPath:  filepath.Join(utils.DownloadDst, d.version, utils.LocalBinRelPath, utils.TsStore),
+			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteBinRelPath),
+			FileName:   utils.TsStore,
 		})
 		d.uploads[host].uploadInfo = append(d.uploads[host].uploadInfo, &config.UploadInfo{
-			LocalPath:  filepath.Join(util.DownloadDst, d.version, util.LocalEtcRelPath, host, util.RemoteStoreConfName),
-			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteEtcRelPath),
-			FileName:   util.RemoteStoreConfName,
+			LocalPath:  filepath.Join(utils.DownloadDst, d.version, utils.LocalEtcRelPath, host, utils.RemoteStoreConfName),
+			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteEtcRelPath),
+			FileName:   utils.RemoteStoreConfName,
 		})
 	}
 
@@ -280,9 +280,9 @@ func (d *GeminiInstaller) prepareUploadActions(c *config.Config) error {
 			}
 		}
 		d.uploads[host].uploadInfo = append(d.uploads[host].uploadInfo, &config.UploadInfo{
-			LocalPath:  util.InstallScriptPath,
-			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteEtcRelPath),
-			FileName:   util.InstallScript,
+			LocalPath:  utils.InstallScriptPath,
+			RemotePath: filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteEtcRelPath),
+			FileName:   utils.InstallScript,
 		})
 	}
 
@@ -309,7 +309,7 @@ func (d *GeminiInstaller) Install() error {
 					if string(output) == "File exists\n" && err == nil {
 						fmt.Printf("%s exists on %s.\n", c.FileName, c.RemotePath)
 					} else {
-						if err := util.UploadFile(action.remoteHost.Ip, c.LocalPath, c.RemotePath, d.sftpClients[action.remoteHost.Ip]); err != nil {
+						if err := utils.UploadFile(action.remoteHost.Ip, c.LocalPath, c.RemotePath, d.sftpClients[action.remoteHost.Ip]); err != nil {
 							fmt.Printf("upload %s to %s error: %v\n", c.LocalPath, action.remoteHost.Ip, err)
 							errChan <- err
 						}

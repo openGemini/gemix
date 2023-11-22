@@ -17,7 +17,7 @@ package cluster
 import (
 	"fmt"
 
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +26,7 @@ var upgradeCmd = &cobra.Command{
 	Short: "upgrade cluster",
 	Long:  `upgrade an openGemini cluster to the specified version`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var ops util.ClusterOptions
+		var ops utils.ClusterOptions
 		var err error
 		if ops, err = ReadClusterOptionsByName(cmd); err != nil {
 			fmt.Println(err)
@@ -48,7 +48,7 @@ var upgradeCmd = &cobra.Command{
 	},
 }
 
-func UpgradeCluster(ops util.ClusterOptions, newV string) error {
+func UpgradeCluster(ops utils.ClusterOptions, newV string) error {
 	newOps := ops
 	newOps.Version = newV
 

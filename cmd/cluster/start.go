@@ -18,11 +18,11 @@ import (
 	"fmt"
 
 	"github.com/openGemini/gemix/pkg/cluster/manager"
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/utils"
 	"github.com/spf13/cobra"
 )
 
-var startOpts util.StartOptions
+var startOpts utils.StartOptions
 
 // startCmd represents the start command
 var startCmd = &cobra.Command{
@@ -30,7 +30,7 @@ var startCmd = &cobra.Command{
 	Short: "Start an openGemini cluster",
 	Long:  `Start an openGemini cluster based on configuration files and version numbers.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var ops util.ClusterOptions
+		var ops utils.ClusterOptions
 		var err error
 		if ops, err = ReadClusterOptionsByName(cmd); err != nil {
 			fmt.Println(err)
@@ -52,7 +52,7 @@ var startCmd = &cobra.Command{
 	},
 }
 
-func StartCluster(clusterOpts util.ClusterOptions) error {
+func StartCluster(clusterOpts utils.ClusterOptions) error {
 	starter := manager.NewGeminiStarter(clusterOpts, startOpts)
 	defer starter.Close()
 

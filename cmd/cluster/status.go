@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	"github.com/openGemini/gemix/pkg/cluster/manager"
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +28,7 @@ var statusCmd = &cobra.Command{
 	Short: "check cluster status",
 	Long:  `Check the current running status of an openGemini cluster.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var ops util.ClusterOptions
+		var ops utils.ClusterOptions
 		var err error
 		if ops, err = ReadClusterOptionsByName(cmd); err != nil {
 			fmt.Println(err)
@@ -43,7 +43,7 @@ var statusCmd = &cobra.Command{
 	},
 }
 
-func PatrolCluster(ops util.ClusterOptions) error {
+func PatrolCluster(ops utils.ClusterOptions) error {
 	patroler := manager.NewGeminiStatusPatroller(ops)
 	defer patroler.Close()
 

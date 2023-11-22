@@ -16,10 +16,23 @@ package spec
 
 import (
 	"os"
+	"path/filepath"
+	"strings"
 
+	"github.com/joomcode/errorx"
+	"github.com/openGemini/gemix/pkg/utils"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
+)
+
+var (
+	defaultDeployUser = "gemini"
+	errNSTopolohy     = errorx.NewNamespace("topology")
+	// ErrTopologyReadFailed is ErrTopologyReadFailed
+	ErrTopologyReadFailed = errNSTopolohy.NewType("read_failed", utils.ErrTraitPreCheck)
+	// ErrTopologyParseFailed is ErrTopologyParseFailed
+	ErrTopologyParseFailed = errNSTopolohy.NewType("parse_failed", utils.ErrTraitPreCheck)
 )
 
 // ReadYamlFile read yaml content from file
@@ -59,4 +72,102 @@ func ReadFromYaml(file string) (*Specification, error) {
 	//updataWithGlobalDefaults(&yamlSpec)
 
 	return yamlSpec, nil
+}
+
+// ParseTopologyYaml read yaml content from `file` and unmarshal it to `out`
+// ignoreGlobal ignore global variables in file, only ignoreGlobal with a index of 0 is effective
+func ParseTopologyYaml(file string, out *Specification, ignoreGlobal ...bool) error {
+	zap.L().Debug("Parse topology file", zap.String("file", file))
+
+	yamlFile, err := ReadYamlFile(file)
+	if err != nil {
+		return err
+	}
+
+	// keep the global config in out
+	if len(ignoreGlobal) > 0 && ignoreGlobal[0] {
+		var newTopo map[string]any
+		if err := yaml.Unmarshal(yamlFile, &newTopo); err != nil {
+			return err
+		}
+		for k := range newTopo {
+			switch k {
+			case "global",
+				"server_configs":
+				delete(newTopo, k)
+			}
+		}
+		yamlFile, _ = yaml.Marshal(newTopo)
+	}
+
+	if err = yaml.UnmarshalStrict(yamlFile, out); err != nil {
+		return errors.WithMessagef(err, "failed to parse topology file %s\n. Please check the syntax of your topology file %s and try again", file, file)
+	}
+
+	zap.L().Debug("Parse topology file succeeded", zap.Any("topology", out))
+	return nil
+}
+
+// Abs returns the absolute path
+func Abs(user, path string) string {
+	// trim whitespaces before joining
+	user = strings.TrimSpace(user)
+	path = strings.TrimSpace(path)
+	if strings.HasPrefix(path, "~/") {
+		if user == "root" {
+			path = filepath.Join("/root", path[2:])
+		} else {
+			path = filepath.Join("/home", user, path[2:])
+		}
+	} else if !strings.HasPrefix(path, "/") {
+		path = filepath.Join("/home", user, path)
+	}
+	return filepath.Clean(path)
+}
+
+// ExpandRelativeDir fill DeployDir, DataDir and LogDir to absolute path
+func ExpandRelativeDir(topo *Specification) {
+	expandRelativePath(deployUser(topo), topo)
+}
+
+func expandRelativePath(user string, topo *Specification) {
+	topo.GlobalOptions.DeployDir = Abs(user, topo.GlobalOptions.DeployDir)
+	topo.GlobalOptions.LogDir = Abs(user, topo.GlobalOptions.LogDir)
+
+	for i := range topo.TSMetaServers {
+		server := topo.TSMetaServers[i]
+		server.DeployDir = Abs(user, server.DeployDir)
+		server.LogDir = Abs(user, server.LogDir)
+		server.DataDir = Abs(user, server.DataDir)
+	}
+
+	for i := range topo.TSSqlServers {
+		server := topo.TSSqlServers[i]
+		server.DeployDir = Abs(user, server.DeployDir)
+		server.LogDir = Abs(user, server.LogDir)
+	}
+
+	for i := range topo.TSStoreServers {
+		server := topo.TSStoreServers[i]
+		server.DeployDir = Abs(user, server.DeployDir)
+		server.LogDir = Abs(user, server.LogDir)
+		server.DataDir = Abs(user, server.DataDir)
+	}
+}
+
+func deployUser(topo *Specification) string {
+	base := topo.BaseTopo()
+	if base.GlobalOptions == nil || base.GlobalOptions.User == "" {
+		return defaultDeployUser
+	}
+	return base.GlobalOptions.User
+}
+
+// SetValueFromGlobal set the default value from global
+func SetValueFromGlobal(topo *Specification) {
+	setValueFromGlobal(topo)
+}
+
+func setValueFromGlobal(topo *Specification) {
+
 }

@@ -14,7 +14,7 @@
 
 package config
 
-import "github.com/openGemini/gemix/util"
+import "github.com/openGemini/gemix/utils"
 
 // used by install, exe, stop .etc
 type RemoteHost struct {
@@ -23,7 +23,7 @@ type RemoteHost struct {
 	User       string
 	Password   string
 	KeyPath    string
-	Typ        util.SSHType
+	Typ        utils.SSHType
 	UpDataPath string
 	LogPath    string
 }

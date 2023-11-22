@@ -20,7 +20,7 @@ import (
 
 	"github.com/openGemini/gemix/pkg/cluster/config"
 	"github.com/openGemini/gemix/pkg/cluster/operation"
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/utils"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -45,10 +45,10 @@ type GeminiStop struct {
 
 	wg sync.WaitGroup
 
-	clusterOptions util.ClusterOptions
+	clusterOptions utils.ClusterOptions
 }
 
-func NewGeminiStop(ops util.ClusterOptions) Stop {
+func NewGeminiStop(ops utils.ClusterOptions) Stop {
 	new := &GeminiStop{
 		remotes:        make(map[string]*config.RemoteHost),
 		stops:          make(map[string]*operation.StopAction),
@@ -83,7 +83,7 @@ func (s *GeminiStop) Prepare() error {
 
 func (s *GeminiStop) prepareRemotes(c *config.Config) error {
 	if c == nil {
-		return util.ErrUnexpectedNil
+		return utils.ErrUnexpectedNil
 	}
 
 	for ip, ssh := range c.SSHConfig {
@@ -109,10 +109,10 @@ func (s *GeminiStop) tryConnect() error {
 		var err error
 		var sshClient *ssh.Client
 		switch r.Typ {
-		case util.SSH_PW:
-			sshClient, err = util.NewSSH_PW(r.User, r.Password, r.Ip, r.SSHPort)
-		case util.SSH_KEY:
-			sshClient, err = util.NewSSH_Key(r.User, r.KeyPath, r.Ip, r.SSHPort)
+		case utils.SSH_PW:
+			sshClient, err = utils.NewSSH_PW(r.User, r.Password, r.Ip, r.SSHPort)
+		case utils.SSH_KEY:
+			sshClient, err = utils.NewSSH_Key(r.User, r.KeyPath, r.Ip, r.SSHPort)
 
 		}
 		if err != nil {
@@ -132,7 +132,7 @@ func (s *GeminiStop) prepareStopActions(c *config.Config) error {
 				Remote: s.remotes[ip],
 			}
 		}
-		s.stops[ip].ProcessNames = append(s.stops[ip].ProcessNames, util.TsMeta)
+		s.stops[ip].ProcessNames = append(s.stops[ip].ProcessNames, utils.TsMeta)
 	}
 
 	// ts-sql
@@ -142,7 +142,7 @@ func (s *GeminiStop) prepareStopActions(c *config.Config) error {
 				Remote: s.remotes[ip],
 			}
 		}
-		s.stops[ip].ProcessNames = append(s.stops[ip].ProcessNames, util.TsSql)
+		s.stops[ip].ProcessNames = append(s.stops[ip].ProcessNames, utils.TsSql)
 	}
 
 	// ts-store
@@ -152,14 +152,14 @@ func (s *GeminiStop) prepareStopActions(c *config.Config) error {
 				Remote: s.remotes[ip],
 			}
 		}
-		s.stops[ip].ProcessNames = append(s.stops[ip].ProcessNames, util.TsStore)
+		s.stops[ip].ProcessNames = append(s.stops[ip].ProcessNames, utils.TsStore)
 	}
 	return nil
 }
 
 func (s *GeminiStop) Run() error {
 	if s.executor == nil {
-		return util.ErrUnexpectedNil
+		return utils.ErrUnexpectedNil
 	}
 	s.wg.Add(len(s.stops))
 	for _, action := range s.stops {

@@ -18,11 +18,24 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/pkg/cluster/manager"
+	operator "github.com/openGemini/gemix/pkg/cluster/operation"
+	"github.com/openGemini/gemix/pkg/cluster/spec"
+	"github.com/openGemini/gemix/utils"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
-var RootCmd *cobra.Command // represents the cluster command
+var (
+	RootCmd      *cobra.Command // represents the cluster command
+	gOpt         operator.Options
+	teleTopology string //lint:ignore U1000 keep this
+	skipConfirm  bool
+	log          = zap.NewNop() // init default logger
+)
+
+var openGeminiSpec *spec.SpecManager
+var cm *manager.Manager
 
 func init() {
 	RootCmd = &cobra.Command{
@@ -31,39 +44,38 @@ func init() {
 		Long:          `Deploy an openGemini cluster for production`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		Example: `
-$ gemix cluster install
-$ gemix cluster start
-$ gemix cluster stop
-$ gemix cluster uninstall
-`,
-		Run: func(cmd *cobra.Command, args []string) {
-			//if err = spec.Initialize("cluster"); err != nil {
-			//	return err
-			//}
-			//cm = manager.NewManager("openGemini", openGeminiSpec, spec.openGeminiComponentVersion, log)
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := spec.Initialize("cluster"); err != nil {
+				return err
+			}
+			openGeminiSpec = spec.GetSpecManager()
+			cm = manager.NewManager("openGemini", openGeminiSpec, log)
+			return nil
 		},
 	}
 
 	RootCmd.AddCommand(
 		installCmd(),
+		installCmd2(),
 		startCmd,
 		stopCmd,
 		uninstallCmd,
 		statusCmd,
 		upgradeCmd,
 	)
+
+	//RootCmd.PersistentFlags().BoolVarP(&skipConfirm, "yes", "y", false, "Skip all confirmations and assumes 'yes'")
 }
 
-func ReadClusterOptionsByName(cmd *cobra.Command) (util.ClusterOptions, error) {
-	var ops util.ClusterOptions
+func ReadClusterOptionsByName(cmd *cobra.Command) (utils.ClusterOptions, error) {
+	var ops utils.ClusterOptions
 	var err error
 	if name, _ := cmd.Flags().GetString("name"); name == "" {
 		return ops, fmt.Errorf("the cluster name is required")
-	} else if !util.CheckClusterNameExist(name) {
+	} else if !utils.CheckClusterNameExist(name) {
 		return ops, fmt.Errorf("the cluster name is not existed, please install the cluster first")
 	} else {
-		ops, err = util.LoadClusterOptionsFromFile(filepath.Join(util.ClusterInfoDir, name))
+		ops, err = utils.LoadClusterOptionsFromFile(filepath.Join(utils.ClusterInfoDir, name))
 		if err != nil {
 			return ops, err
 		}
