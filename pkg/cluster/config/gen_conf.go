@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/utils"
 )
 
 type HostFile struct {
@@ -142,7 +142,7 @@ func GenConfs(y Yaml, template Toml, path string) error {
 				Username:      host.TsMeta.Config.Username,
 				Password:      host.TsMeta.Config.Password}
 
-			fileName := filepath.Join(path, host.Ip, util.RemoteMetaConfName)
+			fileName := filepath.Join(path, host.Ip, utils.RemoteMetaConfName)
 			if err := GenNewToml(newToml, fileName); err != nil {
 				return err
 			}
@@ -186,7 +186,7 @@ func GenConfs(y Yaml, template Toml, path string) error {
 				Username:      host.TsSql.Config.Username,
 				Password:      host.TsSql.Config.Password}
 
-			fileName := filepath.Join(path, host.Ip, util.RemoteSqlConfName)
+			fileName := filepath.Join(path, host.Ip, utils.RemoteSqlConfName)
 			if err := GenNewToml(newToml, fileName); err != nil {
 				return err
 			}
@@ -244,7 +244,7 @@ func GenConfs(y Yaml, template Toml, path string) error {
 				Username:      host.TsStore.Config.Username,
 				Password:      host.TsStore.Config.Password}
 
-			fileName := filepath.Join(path, host.Ip, util.RemoteStoreConfName)
+			fileName := filepath.Join(path, host.Ip, utils.RemoteStoreConfName)
 			if err := GenNewToml(newToml, fileName); err != nil {
 				return err
 			}

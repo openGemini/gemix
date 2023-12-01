@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	"github.com/openGemini/gemix/pkg/cluster/config"
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/utils"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -43,10 +43,10 @@ func (e *GeminiExecutor) ExecCommand(ip string, command string) (string, error) 
 	sshClient := e.sshClients[ip]
 	if sshClient == nil {
 		fmt.Printf("no ssh client for %s\n", ip)
-		return "", util.ErrNoSshClient
+		return "", utils.ErrNoSshClient
 	}
 
-	sshSession, err := util.NewSshSession(sshClient)
+	sshSession, err := utils.NewSshSession(sshClient)
 	if err != nil {
 		fmt.Printf("new ssh session failed! %v", err)
 	}
@@ -82,11 +82,11 @@ func (e *GeminiExecutor) ExecRunAction(action *RunAction, errChan chan error) st
 	sshClient := e.sshClients[ip]
 	if sshClient == nil {
 		fmt.Printf("no ssh client for %s\n", ip)
-		errChan <- util.ErrNoSshClient
+		errChan <- utils.ErrNoSshClient
 		return ""
 	}
 
-	sshSession, err := util.NewSshSession(sshClient)
+	sshSession, err := utils.NewSshSession(sshClient)
 	if err != nil {
 		fmt.Printf("new ssh session failed! %v", err)
 	}
@@ -117,7 +117,7 @@ func (e *GeminiExecutor) ExecStopAction(action *StopAction) (string, error) {
 	sshClient := e.sshClients[ip]
 	if sshClient == nil {
 		fmt.Printf("no ssh client for %s\n", ip)
-		return "", util.ErrNoSshClient
+		return "", utils.ErrNoSshClient
 	}
 
 	command := ""
@@ -125,7 +125,7 @@ func (e *GeminiExecutor) ExecStopAction(action *StopAction) (string, error) {
 		command = fmt.Sprintf(`%s pgrep -x %s > /dev/null && killall %s && echo "Terminating process: %s" || echo "Process %s not found.";`, command, bin, bin, bin, bin)
 	}
 
-	sshSession, err := util.NewSshSession(sshClient)
+	sshSession, err := utils.NewSshSession(sshClient)
 	if err != nil {
 		fmt.Printf("new ssh session failed! %v", err)
 	}

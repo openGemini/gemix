@@ -19,7 +19,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -27,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/utils"
 )
 
 type DownloadOptions struct {
@@ -54,21 +53,21 @@ type GeminiDownloader struct {
 
 func NewGeminiDownloader(ops DownloadOptions) Downloader {
 	return &GeminiDownloader{
-		website:     util.DownloadWeb,
+		website:     utils.DownloadWeb,
 		version:     ops.Version,
-		typ:         "-" + ops.Os + "-" + ops.Arch + util.DownloadPkgSuffix,
-		destination: util.DownloadDst,
-		timeout:     util.DownloadTimeout,
+		typ:         "-" + ops.Os + "-" + ops.Arch + utils.DownloadPkgSuffix,
+		destination: utils.DownloadDst,
+		timeout:     utils.DownloadTimeout,
 	}
 }
 
 func (d *GeminiDownloader) spliceUrl() error {
 	if d.website == "" {
-		d.website = util.DownloadWeb
+		d.website = utils.DownloadWeb
 	}
 
 	if d.version == "" {
-		latestVer, err := util.GetLatestVerFromCurl()
+		latestVer, err := utils.GetLatestVerFromCurl()
 		if err != nil {
 			return err
 		} else {
@@ -76,13 +75,13 @@ func (d *GeminiDownloader) spliceUrl() error {
 		}
 	}
 
-	d.Url = d.website + "/" + d.version + "/" + util.DownloadFillChar + d.version[1:] + d.typ
+	d.Url = d.website + "/" + d.version + "/" + utils.DownloadFillChar + d.version[1:] + d.typ
 	return nil
 }
 
 func (d *GeminiDownloader) Run() error {
-	if _, err := os.Stat(util.DownloadDst); os.IsNotExist(err) {
-		errDir := os.MkdirAll(util.DownloadDst, 0750)
+	if _, err := os.Stat(utils.DownloadDst); os.IsNotExist(err) {
+		errDir := os.MkdirAll(utils.DownloadDst, 0750)
 		if errDir != nil {
 			return errDir
 		}
@@ -110,7 +109,7 @@ func (d *GeminiDownloader) Run() error {
 
 func (d *GeminiDownloader) isExistedFile() (bool, error) {
 	dir := filepath.Join(d.destination, d.version)
-	fs, err := ioutil.ReadDir(dir)
+	fs, err := os.ReadDir(dir)
 	if err != nil {
 		return false, err
 	} else if len(fs) > 1 {

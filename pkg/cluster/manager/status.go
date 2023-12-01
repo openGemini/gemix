@@ -26,7 +26,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/openGemini/gemix/pkg/cluster/config"
 	"github.com/openGemini/gemix/pkg/cluster/operation"
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/utils"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -62,12 +62,12 @@ type GeminiStatusPatroller struct {
 	configurator config.Configurator // conf reader
 	executor     operation.Executor  // execute commands on remote host
 
-	clusterOptions util.ClusterOptions
+	clusterOptions utils.ClusterOptions
 
 	wg sync.WaitGroup
 }
 
-func NewGeminiStatusPatroller(ops util.ClusterOptions) StatusPatroller {
+func NewGeminiStatusPatroller(ops utils.ClusterOptions) StatusPatroller {
 	return &GeminiStatusPatroller{
 		version:        ops.Version,
 		remotes:        make(map[string]*config.RemoteHost),
@@ -97,7 +97,7 @@ func (d *GeminiStatusPatroller) PrepareForPatrol() error {
 
 func (d *GeminiStatusPatroller) prepareRemotes(c *config.Config) error {
 	if c == nil {
-		return util.ErrUnexpectedNil
+		return utils.ErrUnexpectedNil
 	}
 
 	for ip, ssh := range c.SSHConfig {
@@ -125,10 +125,10 @@ func (d *GeminiStatusPatroller) tryConnect() error {
 		var err error
 		var sshClient *ssh.Client
 		switch r.Typ {
-		case util.SSH_PW:
-			sshClient, err = util.NewSSH_PW(r.User, r.Password, r.Ip, r.SSHPort)
-		case util.SSH_KEY:
-			sshClient, err = util.NewSSH_Key(r.User, r.KeyPath, r.Ip, r.SSHPort)
+		case utils.SSH_PW:
+			sshClient, err = utils.NewSSH_PW(r.User, r.Password, r.Ip, r.SSHPort)
+		case utils.SSH_KEY:
+			sshClient, err = utils.NewSSH_Key(r.User, r.KeyPath, r.Ip, r.SSHPort)
 
 		}
 		if err != nil {
@@ -207,7 +207,7 @@ func (d *GeminiStatusPatroller) patrolOneServer(ip string, statusChan chan Clust
 	// check port status about ts-meta
 	for _, i := range d.conf.CommonConfig.MetaHosts {
 		if ip == i {
-			tomlPath := filepath.Join(util.DownloadDst, d.version, util.LocalEtcRelPath, ip, util.RemoteMetaConfName)
+			tomlPath := filepath.Join(utils.DownloadDst, d.version, utils.LocalEtcRelPath, ip, utils.RemoteMetaConfName)
 			t, err := config.ReadFromToml(tomlPath)
 			if err != nil {
 				fmt.Println(err)
@@ -251,7 +251,7 @@ func (d *GeminiStatusPatroller) patrolOneServer(ip string, statusChan chan Clust
 	// check port status about ts-sql
 	for _, i := range d.conf.CommonConfig.SqlHosts {
 		if ip == i {
-			tomlPath := filepath.Join(util.DownloadDst, d.version, util.LocalEtcRelPath, ip, util.RemoteSqlConfName)
+			tomlPath := filepath.Join(utils.DownloadDst, d.version, utils.LocalEtcRelPath, ip, utils.RemoteSqlConfName)
 			t, err := config.ReadFromToml(tomlPath)
 			if err != nil {
 				fmt.Println(err)
@@ -271,7 +271,7 @@ func (d *GeminiStatusPatroller) patrolOneServer(ip string, statusChan chan Clust
 	// check port status about ts-store
 	for _, i := range d.conf.CommonConfig.StoreHosts {
 		if ip == i {
-			tomlPath := filepath.Join(util.DownloadDst, d.version, util.LocalEtcRelPath, ip, util.RemoteStoreConfName)
+			tomlPath := filepath.Join(utils.DownloadDst, d.version, utils.LocalEtcRelPath, ip, utils.RemoteStoreConfName)
 			t, err := config.ReadFromToml(tomlPath)
 			if err != nil {
 				fmt.Println(err)

@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	"github.com/openGemini/gemix/pkg/cluster/operation"
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +32,7 @@ var installCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		version, _ := cmd.Flags().GetString("version")
 		if version == "" {
-			latestVer, err := util.GetLatestVerFromCurl()
+			latestVer, err := utils.GetLatestVerFromCurl()
 			if err != nil {
 				fmt.Println(err)
 				fmt.Println(cmd.UsageString())
@@ -43,11 +43,11 @@ var installCmd = &cobra.Command{
 		}
 		os, _ := cmd.Flags().GetString("os")
 		if os == "" {
-			os = util.DownloadDefaultOs
+			os = utils.DownloadDefaultOs
 		}
 		arch, _ := cmd.Flags().GetString("arch")
 		if arch == "" {
-			arch = util.DownloadDefaultArch
+			arch = utils.DownloadDefaultArch
 		}
 		dOps := operation.DownloadOptions{
 			Version: version,

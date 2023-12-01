@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	"github.com/openGemini/gemix/pkg/cluster/manager"
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +28,7 @@ var uninstallCmd = &cobra.Command{
 	Short: "uninstall cluster",
 	Long:  `uninstall an openGemini cluster based on configuration files.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var ops util.ClusterOptions
+		var ops utils.ClusterOptions
 		var err error
 		if ops, err = ReadClusterOptionsByName(cmd); err != nil {
 			fmt.Println(err)
@@ -43,7 +43,7 @@ var uninstallCmd = &cobra.Command{
 	},
 }
 
-func UninstallCluster(ops util.ClusterOptions) error {
+func UninstallCluster(ops utils.ClusterOptions) error {
 	uninstaller := manager.NewGeminiUninstaller(ops)
 	defer uninstaller.Close()
 

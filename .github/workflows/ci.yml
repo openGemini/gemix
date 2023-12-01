@@ -26,8 +26,8 @@ jobs:
           fetch-depth: 100
       - name: Run commitlint
         uses: wagoid/commitlint-github-action@v5
-  StaticCheck:
-    name: "static check"
+  GoLint:
+    name: "style check, static check, go vet and other go lint"
     needs: CommitLint
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -38,26 +38,14 @@ jobs:
       - uses: WillAbides/setup-go-faster@v1.7.0
         with:
           go-version: "1.19"
-      - name: Run static check
-        run: make static-check
-  OtherGoLint:
-    name: "style check, go vet and other go lint"
-    needs: CommitLint
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v1
-        with:
-          fetch-depth: 1
-      - uses: WillAbides/setup-go-faster@v1.7.0
-        with:
-          go-version: "1.18"
       - name: Run go version check
         run: make go-version-check
       - name: Run go generate check
         run: make go-generate
       - name: Run style check
         run: make style-check
+      - name: Run static check
+        run: make static-check
       - name: Run go vet check
         run: make go-vet-check
 #      - name: Run golangci-lint  ## TODO: use github-action below
@@ -67,19 +55,19 @@ jobs:
         with:
           version: v1.53
 #          args: --timeout=10m --tests=false --skip-dirs=open_src
-          args: --timeout=10m --tests=false
+          args: --timeout=10m --tests=false --disable=staticcheck
           only-new-issues: true
           skip-pkg-cache: true
           skip-build-cache: true
   UT:
     name: unit test
     if: github.event.pull_request.draft == false
-    needs: [StaticCheck, OtherGoLint]
+    needs: [GoLint]
     strategy:
       fail-fast: true
       matrix:
         os: ["ubuntu-latest"] # "macOS-latest"
-        go: ["1.18.x"]
+        go: ["1.19.x"]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:

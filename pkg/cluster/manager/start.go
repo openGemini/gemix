@@ -25,7 +25,7 @@ import (
 
 	"github.com/openGemini/gemix/pkg/cluster/config"
 	"github.com/openGemini/gemix/pkg/cluster/operation"
-	"github.com/openGemini/gemix/util"
+	"github.com/openGemini/gemix/utils"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -47,18 +47,18 @@ type GeminiStarter struct {
 	configurator config.Configurator // conf reader
 	executor     operation.Executor  // execute commands on remote host
 
-	clusterOptions util.ClusterOptions
-	startOptions   util.StartOptions
+	clusterOptions utils.ClusterOptions
+	startOptions   utils.StartOptions
 
 	wg sync.WaitGroup
 }
 
-func NewGeminiStarter(ops util.ClusterOptions, startOpts util.StartOptions) Starter {
+func NewGeminiStarter(ops utils.ClusterOptions, startOpts utils.StartOptions) Starter {
 	return &GeminiStarter{
 		remotes:        make(map[string]*config.RemoteHost),
 		sshClients:     make(map[string]*ssh.Client),
 		version:        ops.Version,
-		configurator:   config.NewGeminiConfigurator(ops.YamlPath, filepath.Join(util.DownloadDst, ops.Version, util.LocalEtcRelPath, util.LocalConfName), filepath.Join(util.DownloadDst, ops.Version, util.LocalEtcRelPath)),
+		configurator:   config.NewGeminiConfigurator(ops.YamlPath, filepath.Join(utils.DownloadDst, ops.Version, utils.LocalEtcRelPath, utils.LocalConfName), filepath.Join(utils.DownloadDst, ops.Version, utils.LocalEtcRelPath)),
 		runs:           &operation.RunActions{},
 		clusterOptions: ops,
 		startOptions:   startOpts,
@@ -119,7 +119,7 @@ func (d *GeminiStarter) createUserIfNeed() error {
 
 func (d *GeminiStarter) prepareRemotes(c *config.Config, needSftp bool) error {
 	if c == nil {
-		return util.ErrUnexpectedNil
+		return utils.ErrUnexpectedNil
 	}
 
 	for ip, ssh := range c.SSHConfig {
@@ -147,10 +147,10 @@ func (d *GeminiStarter) tryConnect() error {
 		var err error
 		var sshClient *ssh.Client
 		switch r.Typ {
-		case util.SSH_PW:
-			sshClient, err = util.NewSSH_PW(r.User, r.Password, r.Ip, r.SSHPort)
-		case util.SSH_KEY:
-			sshClient, err = util.NewSSH_Key(r.User, r.KeyPath, r.Ip, r.SSHPort)
+		case utils.SSH_PW:
+			sshClient, err = utils.NewSSH_PW(r.User, r.Password, r.Ip, r.SSHPort)
+		case utils.SSH_KEY:
+			sshClient, err = utils.NewSSH_Key(r.User, r.KeyPath, r.Ip, r.SSHPort)
 
 		}
 		if err != nil {
@@ -168,12 +168,12 @@ func (d *GeminiStarter) prepareRunActions(c *config.Config) error {
 		d.runs.MetaAction = append(d.runs.MetaAction, &operation.RunAction{
 			User: d.startOptions.User,
 			Info: &operation.RunInfo{
-				ScriptPath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteEtcRelPath, util.InstallScript),
-				Args: []string{util.TsMeta, d.remotes[host].LogPath,
-					filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteBinRelPath, util.TsMeta),
-					filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteEtcRelPath, util.RemoteMetaConfName),
-					filepath.Join(d.remotes[host].LogPath, util.RemotePidPath, util.TsMeta+util.RemotePidSuffix),
-					filepath.Join(d.remotes[host].LogPath, util.MetaExtraLog+util.RemoteLogSuffix)},
+				ScriptPath: filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteEtcRelPath, utils.InstallScript),
+				Args: []string{utils.TsMeta, d.remotes[host].LogPath,
+					filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteBinRelPath, utils.TsMeta),
+					filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteEtcRelPath, utils.RemoteMetaConfName),
+					filepath.Join(d.remotes[host].LogPath, utils.RemotePidPath, utils.TsMeta+utils.RemotePidSuffix),
+					filepath.Join(d.remotes[host].LogPath, utils.MetaExtraLog+utils.RemoteLogSuffix)},
 			},
 			Remote: d.remotes[host],
 		})
@@ -186,12 +186,12 @@ func (d *GeminiStarter) prepareRunActions(c *config.Config) error {
 		d.runs.SqlAction = append(d.runs.SqlAction, &operation.RunAction{
 			User: d.startOptions.User,
 			Info: &operation.RunInfo{
-				ScriptPath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteEtcRelPath, util.InstallScript),
-				Args: []string{util.TsSql, d.remotes[host].LogPath,
-					filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteBinRelPath, util.TsSql),
-					filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteEtcRelPath, util.RemoteSqlConfName),
-					filepath.Join(d.remotes[host].LogPath, util.RemotePidPath, util.TsSql+util.RemotePidSuffix),
-					filepath.Join(d.remotes[host].LogPath, util.SqlExtraLog+util.RemoteLogSuffix)},
+				ScriptPath: filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteEtcRelPath, utils.InstallScript),
+				Args: []string{utils.TsSql, d.remotes[host].LogPath,
+					filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteBinRelPath, utils.TsSql),
+					filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteEtcRelPath, utils.RemoteSqlConfName),
+					filepath.Join(d.remotes[host].LogPath, utils.RemotePidPath, utils.TsSql+utils.RemotePidSuffix),
+					filepath.Join(d.remotes[host].LogPath, utils.SqlExtraLog+utils.RemoteLogSuffix)},
 			},
 			Remote: d.remotes[host],
 		})
@@ -204,12 +204,12 @@ func (d *GeminiStarter) prepareRunActions(c *config.Config) error {
 		d.runs.StoreAction = append(d.runs.StoreAction, &operation.RunAction{
 			User: d.startOptions.User,
 			Info: &operation.RunInfo{
-				ScriptPath: filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteEtcRelPath, util.InstallScript),
-				Args: []string{util.TsStore, d.remotes[host].LogPath,
-					filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteBinRelPath, util.TsStore),
-					filepath.Join(d.remotes[host].UpDataPath, d.version, util.RemoteEtcRelPath, util.RemoteStoreConfName),
-					filepath.Join(d.remotes[host].LogPath, util.RemotePidPath, util.TsStore+util.RemotePidSuffix),
-					filepath.Join(d.remotes[host].LogPath, util.StoreExtraLog+util.RemoteLogSuffix)},
+				ScriptPath: filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteEtcRelPath, utils.InstallScript),
+				Args: []string{utils.TsStore, d.remotes[host].LogPath,
+					filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteBinRelPath, utils.TsStore),
+					filepath.Join(d.remotes[host].UpDataPath, d.version, utils.RemoteEtcRelPath, utils.RemoteStoreConfName),
+					filepath.Join(d.remotes[host].LogPath, utils.RemotePidPath, utils.TsStore+utils.RemotePidSuffix),
+					filepath.Join(d.remotes[host].LogPath, utils.StoreExtraLog+utils.RemoteLogSuffix)},
 			},
 			Remote: d.remotes[host],
 		})
@@ -239,7 +239,7 @@ func (d *GeminiStarter) checkProcessConflict() bool {
 func (d *GeminiStarter) checkPortConflict(conf *config.Config) (bool, int, string) {
 	// check port conflict about ts-meta
 	for _, ip := range conf.CommonConfig.MetaHosts {
-		tomlPath := filepath.Join(util.DownloadDst, d.version, util.LocalEtcRelPath, ip, util.RemoteMetaConfName)
+		tomlPath := filepath.Join(utils.DownloadDst, d.version, utils.LocalEtcRelPath, ip, utils.RemoteMetaConfName)
 		t, err := config.ReadFromToml(tomlPath)
 		if err != nil {
 			fmt.Println(err)
@@ -285,7 +285,7 @@ func (d *GeminiStarter) checkPortConflict(conf *config.Config) (bool, int, strin
 
 	// check port conflict about ts-sql
 	for _, ip := range conf.CommonConfig.SqlHosts {
-		tomlPath := filepath.Join(util.DownloadDst, d.version, util.LocalEtcRelPath, ip, util.RemoteSqlConfName)
+		tomlPath := filepath.Join(utils.DownloadDst, d.version, utils.LocalEtcRelPath, ip, utils.RemoteSqlConfName)
 		t, err := config.ReadFromToml(tomlPath)
 		if err != nil {
 			fmt.Println(err)
@@ -304,7 +304,7 @@ func (d *GeminiStarter) checkPortConflict(conf *config.Config) (bool, int, strin
 
 	// check port conflict about ts-store
 	for _, ip := range conf.CommonConfig.StoreHosts {
-		tomlPath := filepath.Join(util.DownloadDst, d.version, util.LocalEtcRelPath, ip, util.RemoteStoreConfName)
+		tomlPath := filepath.Join(utils.DownloadDst, d.version, utils.LocalEtcRelPath, ip, utils.RemoteStoreConfName)
 		t, err := config.ReadFromToml(tomlPath)
 		if err != nil {
 			fmt.Println(err)

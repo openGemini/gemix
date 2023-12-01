@@ -16,7 +16,6 @@ package util
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path"
@@ -68,7 +67,7 @@ func NewSSH_Key(user, privateKeyPath, host string, port int) (*ssh.Client, error
 		err          error
 	)
 
-	privateKeyBytes, err := ioutil.ReadFile(privateKeyPath)
+	privateKeyBytes, err := os.ReadFile(privateKeyPath)
 	if err != nil {
 		return nil, err
 	}
