@@ -24,8 +24,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/openGemini/gemix/pkg/cluster/ctxt"
+	"github.com/openGemini/gemix/pkg/cluster/module"
+	system "github.com/openGemini/gemix/pkg/cluster/template/systemd"
 	"github.com/openGemini/gemix/pkg/meta"
+	"github.com/pkg/errors"
 )
 
 // Components names
@@ -52,7 +56,7 @@ type Component interface {
 type Instance interface {
 	InstanceSpec
 	ID() string
-	//Ready(context.Context, ctxt.Executor, uint64, *tls.Config) error
+	Ready(context.Context, ctxt.Executor, uint64, *tls.Config) error
 	InitConfig(ctx context.Context, e ctxt.Executor, clusterName string, clusterVersion string, deployUser string, paths meta.DirPaths) error
 	//ScaleConfig(ctx context.Context, e ctxt.Executor, topo Topology, clusterName string, clusterVersion string, deployUser string, paths meta.DirPaths) error
 	PrepareStart(ctx context.Context, tlsCfg *tls.Config) error
@@ -75,6 +79,28 @@ type Instance interface {
 	Arch() string
 }
 
+// PortStarted wait until a port is being listened
+func PortStarted(ctx context.Context, e ctxt.Executor, port int, timeout uint64) error {
+	c := module.WaitForConfig{
+		Port:    port,
+		State:   "started",
+		Timeout: time.Second * time.Duration(timeout),
+	}
+	w := module.NewWaitFor(c)
+	return w.Execute(ctx, e)
+}
+
+// PortStopped wait until a port is being released
+func PortStopped(ctx context.Context, e ctxt.Executor, port int, timeout uint64) error {
+	c := module.WaitForConfig{
+		Port:    port,
+		State:   "stopped",
+		Timeout: time.Second * time.Duration(timeout),
+	}
+	w := module.NewWaitFor(c)
+	return w.Execute(ctx, e)
+}
+
 // BaseInstance implements some method of Instance interface..
 type BaseInstance struct {
 	InstanceSpec
@@ -94,14 +120,38 @@ type BaseInstance struct {
 }
 
 // Ready implements Instance interface
-//func (i *BaseInstance) Ready(ctx context.Context, e ctxt.Executor, timeout uint64, _ *tls.Config) error {
-//	return PortStarted(ctx, e, i.Port, timeout)
-//}
+func (i *BaseInstance) Ready(ctx context.Context, e ctxt.Executor, timeout uint64, _ *tls.Config) error {
+	return PortStarted(ctx, e, i.Port, timeout)
+}
 
 // InitConfig init the service configuration.
-//func (i *BaseInstance) InitConfig(ctx context.Context, e ctxt.Executor, opt GlobalOptions, user string, paths meta.DirPaths) (err error) {
-//	return nil
-//}
+func (i *BaseInstance) InitConfig(ctx context.Context, e ctxt.Executor, opt GlobalOptions, user string, paths meta.DirPaths) (err error) {
+	comp := i.ComponentName()
+	host := i.GetHost()
+	port := i.GetPort()
+	sysCfg := filepath.Join(paths.Cache, fmt.Sprintf("%s-%s-%d.service", comp, host, port))
+
+	resource := MergeResourceControl(opt.ResourceControl, i.ResourceControl())
+	systemCfg := system.NewConfig(comp, user, paths.Deploy).
+		WithMemoryLimit(resource.MemoryLimit).
+		WithCPUQuota(resource.CPUQuota).
+		WithLimitCORE(resource.LimitCORE).
+		WithIOReadBandwidthMax(resource.IOReadBandwidthMax).
+		WithIOWriteBandwidthMax(resource.IOWriteBandwidthMax)
+
+	if err = systemCfg.ConfigToFile(sysCfg); err != nil {
+		return errors.WithStack(err)
+	}
+	tgt := filepath.Join("/tmp", comp+"_"+uuid.New().String()+".service")
+	if err := e.Transfer(ctx, sysCfg, tgt, false, 0, false); err != nil {
+		return errors.WithMessagef(err, "transfer from %s to %s failed", sysCfg, tgt)
+	}
+	cmd := fmt.Sprintf("mv %s /etc/systemd/system/%s-%d.service", tgt, comp, port)
+	if _, _, err := e.Execute(ctx, cmd, true); err != nil {
+		return errors.WithMessagef(err, "execute: %s", cmd)
+	}
+	return nil
+}
 
 // MergeServerConfig merges the server configuration and overwrite the global configuration
 func (i *BaseInstance) MergeServerConfig(ctx context.Context, e ctxt.Executor, globalConf, instanceConf map[string]any, paths meta.DirPaths) error {
@@ -266,6 +316,34 @@ func (i *BaseInstance) SetPatched(p bool) {
 // PrepareStart checks instance requirements before starting
 func (i *BaseInstance) PrepareStart(ctx context.Context, tlsCfg *tls.Config) error {
 	return nil
+}
+
+// MergeResourceControl merge the rhs into lhs and overwrite rhs if lhs has value for same field
+func MergeResourceControl(lhs, rhs meta.ResourceControl) meta.ResourceControl {
+	if rhs.MemoryLimit != "" {
+		lhs.MemoryLimit = rhs.MemoryLimit
+	}
+	if rhs.CPUQuota != "" {
+		lhs.CPUQuota = rhs.CPUQuota
+	}
+	if rhs.IOReadBandwidthMax != "" {
+		lhs.IOReadBandwidthMax = rhs.IOReadBandwidthMax
+	}
+	if rhs.IOWriteBandwidthMax != "" {
+		lhs.IOWriteBandwidthMax = rhs.IOWriteBandwidthMax
+	}
+	if rhs.LimitCORE != "" {
+		lhs.LimitCORE = rhs.LimitCORE
+	}
+	return lhs
+}
+
+// ResourceControl return cgroups config of instance
+func (i *BaseInstance) ResourceControl() meta.ResourceControl {
+	if v := reflect.Indirect(reflect.ValueOf(i.InstanceSpec)).FieldByName("ResourceControl"); v.IsValid() {
+		return v.Interface().(meta.ResourceControl)
+	}
+	return meta.ResourceControl{}
 }
 
 // GetPort implements Instance interface

@@ -22,13 +22,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var startOpts utils.StartOptions
-
 // startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start <cluster-name>",
 	Short: "Start an openGemini cluster",
-	Long:  `Start an openGemini cluster based on configuration files and version numbers.`,
+	Long:  `Start an openGemini cluster`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var ops utils.ClusterOptions
 		var err error

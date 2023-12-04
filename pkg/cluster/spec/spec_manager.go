@@ -15,8 +15,10 @@
 package spec
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 
 	"github.com/joomcode/errorx"
 	"github.com/openGemini/gemix/pkg/gui"
@@ -100,6 +102,23 @@ func (s *SpecManager) SaveMeta(clusterName string, meta *ClusterMeta) error {
 	return nil
 }
 
+// Metadata tries to read the metadata of a cluster from file
+func (s *SpecManager) Metadata(clusterName string, meta any) error {
+	fname := s.Path(clusterName, metaFileName)
+
+	yamlFile, err := os.ReadFile(fname)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	err = yaml.Unmarshal(yamlFile, meta)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
 // Exist checks if the cluster exist by checking the meta file.
 func (s *SpecManager) Exist(clusterName string) (exist bool, err error) {
 	fname := s.Path(clusterName, metaFileName)
@@ -143,8 +162,18 @@ type ClusterMeta struct {
 }
 
 // GetTopology implement Metadata interface.
-func (m *ClusterMeta) GetTopology() *Specification {
+func (m *ClusterMeta) GetTopology() Topology {
 	return m.Topology
+}
+
+// SetTopology implement Metadata interface.
+func (m *ClusterMeta) SetTopology(topo Topology) {
+	tidbTopo, ok := topo.(*Specification)
+	if !ok {
+		panic(fmt.Sprintln("wrong type: ", reflect.TypeOf(topo)))
+	}
+
+	m.Topology = tidbTopo
 }
 
 // GetBaseMeta implements Metadata interface.

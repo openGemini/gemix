@@ -144,9 +144,9 @@ type TSMetaInstance struct {
 
 func (i *TSMetaInstance) InitConfig(ctx context.Context, e ctxt.Executor, clusterName string, clusterVersion string, deployUser string, paths meta.DirPaths) error {
 	topo := i.topo
-	//if err := i.BaseInstance.InitConfig(ctx, e, topo.GlobalOptions, deployUser, paths); err != nil {
-	//	return err
-	//}
+	if err := i.BaseInstance.InitConfig(ctx, e, topo.GlobalOptions, deployUser, paths); err != nil {
+		return err
+	}
 	spec := i.InstanceSpec.(*TSMetaSpec)
 
 	cfg := &scripts.TSMetaScript{
@@ -191,7 +191,7 @@ func (i *TSMetaInstance) SetDefaultConfig(instanceConf map[string]any) map[strin
 	var metaPeerAddrs []string
 	var tsMetaSpec *TSMetaSpec
 	for _, metaSpec := range i.topo.TSMetaServers {
-		if i.Host == metaSpec.Host {
+		if i.Host == metaSpec.Host && i.Port == metaSpec.ClientPort {
 			tsMetaSpec = metaSpec
 		}
 		metaPeerAddrs = append(metaPeerAddrs, utils.JoinHostPort(metaSpec.Host, metaSpec.PeerPort))

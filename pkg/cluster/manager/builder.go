@@ -25,7 +25,7 @@ import (
 )
 
 // buildDownloadCompTasks build download component tasks
-func buildDownloadCompTasks(clusterVersion string, topo *spec.Specification) []*task.StepDisplay {
+func buildDownloadCompTasks(clusterVersion string, topo spec.Topology) []*task.StepDisplay {
 	var tasks []*task.StepDisplay
 	uniqueTasks := make(map[string]struct{})
 
@@ -48,7 +48,7 @@ func buildDownloadCompTasks(clusterVersion string, topo *spec.Specification) []*
 func buildInitConfigTasks(
 	m *Manager,
 	clustername string,
-	topo *spec.Specification,
+	topo spec.Topology,
 	base *spec.BaseMeta,
 	gOpt operator.Options,
 ) []*task.StepDisplay {

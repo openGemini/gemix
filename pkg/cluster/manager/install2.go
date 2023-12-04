@@ -287,10 +287,10 @@ func (m *Manager) Install(
 	}
 
 	// FIXME: remove me if you finish
-	//err = m.specManager.SaveMeta(clusterName, metadata)
-	//if err != nil {
-	//	return err
-	//}
+	err = m.specManager.SaveMeta(clusterName, metadata)
+	if err != nil {
+		return err
+	}
 
 	hint := color.New(color.FgBlue).Sprintf("%s start %s", "gemix cluster", clusterName)
 	fmt.Printf("Cluster `%s` deployed successfully, you can start it with command: `%s`\n", clusterName, hint)

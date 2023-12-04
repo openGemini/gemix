@@ -109,7 +109,7 @@ func (c *TSStoreComponent) Instances() []Instance {
 				Host:         s.Host,
 				ManageHost:   s.ManageHost,
 				ListenHost:   s.ListenHost,
-				Port:         s.SelectPort,
+				Port:         s.SelectPort, // do not change me
 				SSHP:         s.SSHPort,
 				Source:       s.GetSource(),
 
@@ -143,9 +143,9 @@ type TSStoreInstance struct {
 
 func (i *TSStoreInstance) InitConfig(ctx context.Context, e ctxt.Executor, clusterName string, clusterVersion string, deployUser string, paths meta.DirPaths) error {
 	topo := i.topo
-	//if err := i.BaseInstance.InitConfig(ctx, e, topo.GlobalOptions, deployUser, paths); err != nil {
-	//	return err
-	//}
+	if err := i.BaseInstance.InitConfig(ctx, e, topo.GlobalOptions, deployUser, paths); err != nil {
+		return err
+	}
 
 	//enableTLS := topo.GlobalOptions.TLSEnabled
 	spec := i.InstanceSpec.(*TSStoreSpec)
@@ -199,7 +199,7 @@ func (i *TSStoreInstance) SetDefaultConfig(instanceConf map[string]any) map[stri
 
 	var tsStoreSpec *TSStoreSpec
 	for _, storeSpec := range i.topo.TSStoreServers {
-		if i.Host == storeSpec.Host {
+		if i.Host == storeSpec.Host && i.Port == storeSpec.SelectPort {
 			tsStoreSpec = storeSpec
 		}
 	}

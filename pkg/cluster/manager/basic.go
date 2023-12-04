@@ -23,7 +23,7 @@ type hostInfo struct {
 }
 
 // getAllUniqueHosts gets all the instance
-func getAllUniqueHosts(topo *spec.Specification) map[string]hostInfo {
+func getAllUniqueHosts(topo spec.Topology) map[string]hostInfo {
 	// monitor
 	uniqueHosts := make(map[string]hostInfo) // host -> ssh-port, os, arch
 	topo.IterInstance(func(inst spec.Instance) {

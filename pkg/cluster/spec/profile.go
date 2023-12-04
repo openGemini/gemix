@@ -65,7 +65,7 @@ func Initialize(base string) error {
 		profileDir = filepath.Join(homeDir, localdata.ProfileDirName, localdata.StorageParentDir, base)
 	}
 
-	clusterBaseDir := filepath.Join(profileDir, OpenGeminiClusterDir) // TODO: how to use?
+	clusterBaseDir := filepath.Join(profileDir, OpenGeminiClusterDir)
 	openGeminiSpec = NewSpec(clusterBaseDir, func() *ClusterMeta {
 		return &ClusterMeta{
 			Topology: new(Specification),

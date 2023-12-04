@@ -99,9 +99,9 @@ type UserSSH struct {
 // Execute implements the Task interface
 func (s *UserSSH) Execute(ctx context.Context) error {
 	sc := executor.SSHConfig{
-		Host: s.host,
-		Port: s.port,
-		//KeyFile:    ctxt.GetInner(ctx).PrivateKeyPath,
+		Host:       s.host,
+		Port:       s.port,
+		KeyFile:    ctxt.GetInner(ctx).PrivateKeyPath,
 		Password:   s.proxyPassword,
 		User:       s.deployUser,
 		Timeout:    time.Second * time.Duration(s.timeout),

@@ -138,9 +138,9 @@ type TSSqlInstance struct {
 
 func (i *TSSqlInstance) InitConfig(ctx context.Context, e ctxt.Executor, clusterName string, clusterVersion string, deployUser string, paths meta.DirPaths) error {
 	topo := i.topo
-	//if err := i.BaseInstance.InitConfig(ctx, e, topo.GlobalOptions, deployUser, paths); err != nil {
-	//	return err
-	//}
+	if err := i.BaseInstance.InitConfig(ctx, e, topo.GlobalOptions, deployUser, paths); err != nil {
+		return err
+	}
 	spec := i.InstanceSpec.(*TSSqlSpec)
 
 	cfg := &scripts.TSSqlScript{

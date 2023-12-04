@@ -22,6 +22,7 @@ import (
 	"sync"
 
 	"github.com/creasty/defaults"
+	"github.com/openGemini/gemix/pkg/meta"
 	"github.com/openGemini/gemix/utils"
 	"github.com/pkg/errors"
 )
@@ -46,16 +47,16 @@ type (
 	// GlobalOptions represents the global options for all groups in topology
 	// specification in topology.yaml
 	GlobalOptions struct {
-		User       string `yaml:"user,omitempty" default:"gemini"`
-		Group      string `yaml:"group,omitempty"`
-		SSHPort    int    `yaml:"ssh_port,omitempty" default:"22" validate:"ssh_port:editable"`
-		TLSEnabled bool   `yaml:"enable_tls,omitempty"`
-		DeployDir  string `yaml:"deploy_dir,omitempty" default:"deploy"`
-		DataDir    string `yaml:"data_dir,omitempty" default:"data"`
-		LogDir     string `yaml:"log_dir,omitempty" default:"data"`
-		//ResourceControl meta.ResourceControl `yaml:"resource_control,omitempty" validate:"resource_control:editable"`
-		OS   string `yaml:"os,omitempty" default:"linux"`
-		Arch string `yaml:"arch,omitempty" default:"amd64"`
+		User            string               `yaml:"user,omitempty" default:"gemini"`
+		Group           string               `yaml:"group,omitempty"`
+		SSHPort         int                  `yaml:"ssh_port,omitempty" default:"22" validate:"ssh_port:editable"`
+		TLSEnabled      bool                 `yaml:"enable_tls,omitempty"`
+		DeployDir       string               `yaml:"deploy_dir,omitempty" default:"deploy"`
+		DataDir         string               `yaml:"data_dir,omitempty" default:"data"`
+		LogDir          string               `yaml:"log_dir,omitempty" default:"data"`
+		ResourceControl meta.ResourceControl `yaml:"resource_control,omitempty" validate:"resource_control:editable"`
+		OS              string               `yaml:"os,omitempty" default:"linux"`
+		Arch            string               `yaml:"arch,omitempty" default:"amd64"`
 		//Custom          any                  `yaml:"custom,omitempty" validate:"custom:ignore"`
 	}
 
@@ -81,11 +82,43 @@ type (
 	}
 )
 
+// Topology represents specification of the cluster.
+type Topology interface {
+	BaseTopo() *BaseTopo
+	// Validate validates the topology specification and produce error if the
+	// specification invalid (e.g: port conflicts or directory conflicts)
+	Validate() error
+
+	ComponentsByStartOrder() []Component
+	ComponentsByStopOrder() []Component
+	//ComponentsByUpdateOrder(curVer string) []Component
+	IterInstance(fn func(instance Instance), concurrency ...int)
+	//CountDir(host string, dir string) int // count how many time a path is used by instances in cluster
+	//TLSConfig(dir string) (*tls.Config, error)
+	//Merge(that Topology) Topology // TODO: for update
+	FillHostArchOrOS(hostArchmap map[string]string, fullType FullHostType) error
+	//GetGrafanaConfig() map[string]string
+}
+
+type BaseTopo struct {
+	GlobalOptions *GlobalOptions
+	MasterList    []string
+
+	//Grafanas      []*GrafanaSpec
+}
+
 // BaseMeta is the base info of metadata.
 type BaseMeta struct {
 	User    string
 	Group   string
 	Version string
+}
+
+// Metadata of a cluster.
+type Metadata interface {
+	GetTopology() Topology
+	SetTopology(topo Topology)
+	GetBaseMeta() *BaseMeta
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface,
@@ -280,13 +313,6 @@ func setCustomDefaults(globalOptions *GlobalOptions, field reflect.Value) error 
 	}
 
 	return nil
-}
-
-type BaseTopo struct {
-	GlobalOptions *GlobalOptions
-	MasterList    []string
-
-	//Grafanas      []*GrafanaSpec
 }
 
 // GetTSMetaListWithManageHost returns a list of PD API hosts of the current cluster
