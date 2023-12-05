@@ -15,7 +15,7 @@
 package manager
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -23,11 +23,71 @@ import (
 	"sync"
 	"time"
 
+	"github.com/joomcode/errorx"
 	"github.com/openGemini/gemix/pkg/cluster/config"
+	"github.com/openGemini/gemix/pkg/cluster/ctxt"
 	"github.com/openGemini/gemix/pkg/cluster/operation"
+	"github.com/openGemini/gemix/pkg/cluster/spec"
+	"github.com/openGemini/gemix/pkg/cluster/task"
 	"github.com/openGemini/gemix/utils"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/ssh"
 )
+
+// StartCluster start the cluster with specified name.
+func (m *Manager) StartCluster(name string, gOpt operation.Options, fn ...func(b *task.Builder, metadata spec.Metadata)) error {
+	m.logger.Info("Starting cluster ...", zap.String("cluster name", name))
+
+	// check locked
+	//if err := m.specManager.ScaleOutLockedErr(name); err != nil {
+	//	return err
+	//}
+
+	metadata, err := m.meta(name)
+	if err != nil {
+		return err
+	}
+
+	topo := metadata.GetTopology()
+	base := metadata.GetBaseMeta()
+
+	//tlsCfg, err := topo.TLSConfig(m.specManager.Path(name, spec.TLSCertKeyDir))
+	//if err != nil {
+	//	return err
+	//}
+
+	b, err := m.sshTaskBuilder(name, topo, base.User, gOpt)
+	if err != nil {
+		return err
+	}
+
+	b.Func("StartCluster", func(ctx context.Context) error {
+		return operation.Start(ctx, topo, gOpt, nil)
+	})
+
+	for _, f := range fn {
+		f(b, metadata)
+	}
+
+	t := b.Build()
+
+	ctx := ctxt.New(
+		context.Background(),
+		gOpt.Concurrency,
+		m.logger,
+	)
+	if err := t.Execute(ctx); err != nil {
+		if errorx.Cast(err) != nil {
+			// FIXME: Map possible task errors and give suggestions.
+			return err
+		}
+		return errors.WithStack(err)
+	}
+
+	m.logger.Info("Started cluster successfully", zap.String("cluster name", name))
+	return nil
+}
 
 type Starter interface {
 	PrepareForStart() error

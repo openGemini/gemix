@@ -76,7 +76,7 @@ func ReadFromYaml(file string) (*Specification, error) {
 
 // ParseTopologyYaml read yaml content from `file` and unmarshal it to `out`
 // ignoreGlobal ignore global variables in file, only ignoreGlobal with a index of 0 is effective
-func ParseTopologyYaml(file string, out *Specification, ignoreGlobal ...bool) error {
+func ParseTopologyYaml(file string, out Topology, ignoreGlobal ...bool) error {
 	zap.L().Debug("Parse topology file", zap.String("file", file))
 
 	yamlFile, err := ReadYamlFile(file)
@@ -126,11 +126,12 @@ func Abs(user, path string) string {
 }
 
 // ExpandRelativeDir fill DeployDir, DataDir and LogDir to absolute path
-func ExpandRelativeDir(topo *Specification) {
+func ExpandRelativeDir(topo Topology) {
 	expandRelativePath(deployUser(topo), topo)
 }
 
-func expandRelativePath(user string, topo *Specification) {
+func expandRelativePath(user string, topology Topology) {
+	topo := topology.(*Specification)
 	topo.GlobalOptions.DeployDir = Abs(user, topo.GlobalOptions.DeployDir)
 	topo.GlobalOptions.LogDir = Abs(user, topo.GlobalOptions.LogDir)
 
@@ -155,7 +156,7 @@ func expandRelativePath(user string, topo *Specification) {
 	}
 }
 
-func deployUser(topo *Specification) string {
+func deployUser(topo Topology) string {
 	base := topo.BaseTopo()
 	if base.GlobalOptions == nil || base.GlobalOptions.User == "" {
 		return defaultDeployUser

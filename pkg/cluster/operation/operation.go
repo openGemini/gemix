@@ -1,5 +1,10 @@
 package operation
 
+import (
+	"github.com/openGemini/gemix/pkg/cluster/spec"
+	"github.com/openGemini/gemix/pkg/set"
+)
+
 // Options represents the operation options
 type Options struct {
 	Roles               []string
@@ -29,4 +34,39 @@ type Options struct {
 
 	DisplayMode string // the output format
 	// Operation   Operation
+}
+
+// FilterComponent filter components by set
+func FilterComponent(comps []spec.Component, components set.StringSet) (res []spec.Component) {
+	if len(components) == 0 {
+		res = comps
+		return
+	}
+
+	for _, c := range comps {
+		role := c.Name()
+		if !components.Exist(role) {
+			continue
+		}
+
+		res = append(res, c)
+	}
+	return
+}
+
+// FilterInstance filter instances by set
+func FilterInstance(instances []spec.Instance, nodes set.StringSet) (res []spec.Instance) {
+	if len(nodes) == 0 {
+		res = instances
+		return
+	}
+
+	for _, c := range instances {
+		if !nodes.Exist(c.ID()) {
+			continue
+		}
+		res = append(res, c)
+	}
+
+	return
 }

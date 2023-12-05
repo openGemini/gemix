@@ -14,6 +14,8 @@
 package task
 
 import (
+	"context"
+
 	"github.com/openGemini/gemix/pkg/cluster/spec"
 	"github.com/openGemini/gemix/pkg/meta"
 	"go.uber.org/zap"
@@ -67,6 +69,34 @@ func (b *Builder) UserSSH(host string, port int, deployUser string, sshTimeout, 
 		timeout:    sshTimeout,
 		exeTimeout: exeTimeout,
 	})
+	return b
+}
+
+// Func append a func task.
+func (b *Builder) Func(name string, fn func(ctx context.Context) error) *Builder {
+	b.tasks = append(b.tasks, &Func{
+		name: name,
+		fn:   fn,
+	})
+	return b
+}
+
+// ClusterSSH init all UserSSH need for the cluster.
+func (b *Builder) ClusterSSH(
+	topo spec.Topology,
+	deployUser string, sshTimeout, exeTimeout uint64) *Builder {
+	var tasks []Task
+	topo.IterInstance(func(inst spec.Instance) {
+		tasks = append(tasks, &UserSSH{
+			host:       inst.GetManageHost(),
+			port:       inst.GetSSHPort(),
+			deployUser: deployUser,
+			timeout:    sshTimeout,
+			exeTimeout: exeTimeout,
+		})
+	})
+
+	b.tasks = append(b.tasks, &Parallel{inner: tasks})
 	return b
 }
 
@@ -141,24 +171,13 @@ func (b *Builder) SSHKeyGen(keypath string) *Builder {
 }
 
 // SSHKeySet appends a SSHKeySet task to the current task collection
-//func (b *Builder) SSHKeySet(privKeyPath, pubKeyPath string) *Builder {
-//	b.tasks = append(b.tasks, &SSHKeySet{
-//		privateKeyPath: privKeyPath,
-//		publicKeyPath:  pubKeyPath,
-//	})
-//	return b
-//}
-
-// EnvInit appends a EnvInit task to the current task collection
-//func (b *Builder) EnvInit(host, deployUser string, userGroup string, skipCreateUser bool) *Builder {
-//	b.tasks = append(b.tasks, &EnvInit{
-//		host:           host,
-//		deployUser:     deployUser,
-//		userGroup:      userGroup,
-//		skipCreateUser: skipCreateUser,
-//	})
-//	return b
-//}
+func (b *Builder) SSHKeySet(privKeyPath, pubKeyPath string) *Builder {
+	b.tasks = append(b.tasks, &SSHKeySet{
+		privateKeyPath: privKeyPath,
+		publicKeyPath:  pubKeyPath,
+	})
+	return b
+}
 
 // Mkdir appends a Mkdir task to the current task collection
 func (b *Builder) Mkdir(user, host string, dirs ...string) *Builder {

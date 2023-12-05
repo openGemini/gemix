@@ -19,7 +19,9 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	operator "github.com/openGemini/gemix/pkg/cluster/operation"
 	"github.com/openGemini/gemix/pkg/cluster/spec"
+	"github.com/openGemini/gemix/pkg/cluster/task"
 	"github.com/openGemini/gemix/pkg/gui"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -42,26 +44,26 @@ func NewManager(sysName string, specManager *spec.SpecManager, logger *zap.Logge
 	}
 }
 
-//func (m *Manager) meta(name string) (metadata spec.Metadata, err error) {
-//	exist, err := m.specManager.Exist(name)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	if !exist {
-//		return nil, perrs.Errorf("%s cluster `%s` not exists", m.sysName, name)
-//	}
-//
-//	metadata = m.specManager.NewMetadata()
-//	err = m.specManager.Metadata(name, metadata)
-//	if err != nil {
-//		return metadata, err
-//	}
-//
-//	return metadata, nil
-//}
+func (m *Manager) meta(name string) (metadata spec.Metadata, err error) {
+	exist, err := m.specManager.Exist(name)
+	if err != nil {
+		return nil, err
+	}
 
-func (m *Manager) confirmTopology(clusterName, version string, topo *spec.Specification) error {
+	if !exist {
+		return nil, errors.Errorf("%s cluster `%s` not exists", m.sysName, name)
+	}
+
+	metadata = m.specManager.NewMetadata() // TODO: 没有可用信息
+	err = m.specManager.Metadata(name, metadata)
+	if err != nil {
+		return metadata, err
+	}
+
+	return metadata, nil
+}
+
+func (m *Manager) confirmTopology(clusterName, version string, topo spec.Topology) error {
 	fmt.Println("Please confirm your topology:")
 
 	cyan := color.New(color.FgCyan, color.Bold)
@@ -95,44 +97,35 @@ func (m *Manager) confirmTopology(clusterName, version string, topo *spec.Specif
 	return gui.PromptForConfirmOrAbortError("Do you want to continue? [y/N]: ")
 }
 
-//func (m *Manager) sshTaskBuilder(name string, topo spec.Topology, user string, gOpt operator.Options) (*task.Builder, error) {
-//	var p *tui.SSHConnectionProps = &tui.SSHConnectionProps{}
-//	if gOpt.SSHType != executor.SSHTypeNone && len(gOpt.SSHProxyHost) != 0 {
-//		var err error
-//		if p, err = tui.ReadIdentityFileOrPassword(gOpt.SSHProxyIdentity, gOpt.SSHProxyUsePassword); err != nil {
-//			return nil, err
-//		}
-//	}
-//
-//	return task.NewBuilder(m.logger).
-//		SSHKeySet(
-//			m.specManager.Path(name, "ssh", "id_rsa"),
-//			m.specManager.Path(name, "ssh", "id_rsa.pub"),
-//		).
-//		ClusterSSH(
-//			topo,
-//			user,
-//			gOpt.SSHTimeout,
-//			gOpt.OptTimeout,
-//			gOpt.SSHProxyHost,
-//			gOpt.SSHProxyPort,
-//			gOpt.SSHProxyUser,
-//			p.Password,
-//			p.IdentityFile,
-//			p.IdentityFilePassphrase,
-//			gOpt.SSHProxyTimeout,
-//			gOpt.SSHType,
-//			topo.BaseTopo().GlobalOptions.SSHType,
-//		), nil
-//}
+func (m *Manager) sshTaskBuilder(name string, topo spec.Topology, user string, gOpt operator.Options) (*task.Builder, error) {
+	//var p *gui.SSHConnectionProps = &gui.SSHConnectionProps{}
+	//if gOpt.SSHType != executor.SSHTypeNone && len(gOpt.SSHProxyHost) != 0 {
+	//	var err error
+	//	if p, err = gui.ReadIdentityFileOrPassword(gOpt.SSHProxyIdentity, gOpt.SSHProxyUsePassword); err != nil {
+	//		return nil, err
+	//	}
+	//}
+
+	return task.NewBuilder(m.logger).
+		SSHKeySet(
+			m.specManager.Path(name, "ssh", "id_rsa"),
+			m.specManager.Path(name, "ssh", "id_rsa.pub"),
+		).
+		ClusterSSH(
+			topo,
+			user,
+			gOpt.SSHTimeout,
+			gOpt.OptTimeout,
+		), nil
+}
 
 // fillHost full host cpu-arch and kernel-name
-func (m *Manager) fillHost(s *gui.SSHConnectionProps, topo *spec.Specification, user string) error {
+func (m *Manager) fillHost(s *gui.SSHConnectionProps, topo spec.Topology, user string) error {
 	hostArchOrOS := map[string]string{}
 	topo.IterInstance(func(instance spec.Instance) {
 		insOS := instance.OS()
 		if insOS == "" {
-			insOS = topo.GlobalOptions.OS
+			insOS = topo.BaseTopo().GlobalOptions.OS
 		}
 		hostArchOrOS[instance.GetHost()] = insOS
 	})
@@ -144,7 +137,7 @@ func (m *Manager) fillHost(s *gui.SSHConnectionProps, topo *spec.Specification, 
 	topo.IterInstance(func(instance spec.Instance) {
 		insArch := instance.Arch()
 		if insArch == "" {
-			insArch = topo.GlobalOptions.Arch
+			insArch = topo.BaseTopo().GlobalOptions.Arch
 		}
 		hostArchOrOS[instance.GetHost()] = insArch
 	})

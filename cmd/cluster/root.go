@@ -58,6 +58,7 @@ func init() {
 		installCmd(),
 		installCmd2(),
 		startCmd,
+		startCmd2(),
 		stopCmd,
 		uninstallCmd,
 		statusCmd,

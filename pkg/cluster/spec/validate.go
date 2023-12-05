@@ -12,20 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package manager
+package spec
 
-import "github.com/openGemini/gemix/pkg/cluster/spec"
-
-// checkConflict checks cluster conflict
-func checkConflict(m *Manager, clusterName string, topo spec.Topology) error {
-	//clusterList, err := m.specManager.GetAllClusters()
-	//if err != nil {
-	//	return err
-	//}
-	//// use a dummy cluster name, the real cluster name is set during deploy
-	//if err := spec.CheckClusterPortConflict(clusterList, clusterName, topo); err != nil {
-	//	return err
-	//}
-	//err = spec.CheckClusterDirConflict(clusterList, clusterName, topo)
+// Validate validates the topology specification and produce error if the
+// specification invalid (e.g: port conflicts or directory conflicts)
+func (s *Specification) Validate() error {
 	return nil
 }
