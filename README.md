@@ -26,15 +26,14 @@ The following table describes some commonly used basic commands.
 
 The following table describes the subcommands of the `cluster` command.
 
-| command     | description | parameter                                                             | example                                                                                                                           |
-|-------------| --- |-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| `install`   | install an openGemini cluster | --name<br />--version<br />--yaml<br />--user<br />--key<br />--password | `./gemix cluster install --name gemini-cluster --version v1.0.0 --yaml ./topology.example.yaml --user gemini --key ~/.ssh/id_rsa` |
-| `install2`  | install an openGemini cluster | cluser-name version topology.yml --user username<br />--password | `./gemix cluster install2 gemini-cluster v1.1.0 ./topology.example.yaml --skip-create-user --user root -p`                        |
-| `start`     | start an openGemini cluster and check the running status after startup | --name<br />--skip-create-user                                        | `./gemix cluster start --name gemini-cluster --skip-create-user`                                                                  |
-| `stop`      | stop an openGemini cluster                                   | --name                                                                | `./gemix cluster stop --name gemini-cluster`                                                                                      |
+| command    | description | parameter                                                             | example                                                                                                                           |
+|------------| --- |-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| `install`  | install an openGemini cluster | cluser-name version topology.yml --user username<br />--password | `./gemix cluster install2 gemini-cluster v1.1.0 ./topology.example.yaml --skip-create-user --user root -p`                        |
+| `start`    | start an openGemini cluster and check the running status after startup | cluster-name                            | `./gemix cluster start gemini-cluster `                                                  |
+| `stop`     | stop an openGemini cluster                                   | --name                                                                | `./gemix cluster stop --name gemini-cluster`                                                                                      |
 | `uninstall` | uninstall an openGemini cluster which means clearing data    | --name                                                                | `./gemix cluster uninstall --name gemini-cluster`                                                                                 |
-| `status`    | Check the running status of the openGemini cluster, including port occupancy, disk capacity, etc | --name                                                                | `./gemix cluster status --name gemini-cluster`                                                                                    |
-| `upgrade`   | upgrade an openGemini cluster to the specified version and uninstall the old one | --name<br />--version                                                 | `./gemix cluster upgrade --name gemini-cluster --version v1.0.1`                                                                  |
+| `status`   | Check the running status of the openGemini cluster, including port occupancy, disk capacity, etc | --name                                                                | `./gemix cluster status --name gemini-cluster`                                                                                    |
+| `upgrade`  | upgrade an openGemini cluster to the specified version and uninstall the old one | --name<br />--version                                                 | `./gemix cluster upgrade --name gemini-cluster --version v1.0.1`                                                                  |
 
 ## topology.example.yaml
 

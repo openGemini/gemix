@@ -15,56 +15,46 @@
 package cluster
 
 import (
-	"fmt"
-
-	"github.com/openGemini/gemix/pkg/cluster/manager"
 	"github.com/openGemini/gemix/utils"
 	"github.com/spf13/cobra"
 )
 
-// startCmd represents the start command
-var startCmd = &cobra.Command{
-	Use:   "start <cluster-name>",
-	Short: "Start an openGemini cluster",
-	Long:  `Start an openGemini cluster`,
-	Run: func(cmd *cobra.Command, args []string) {
-		var ops utils.ClusterOptions
-		var err error
-		if ops, err = ReadClusterOptionsByName(cmd); err != nil {
-			fmt.Println(err)
-			fmt.Println(cmd.UsageString())
-			return
-		}
+var startOpts utils.StartOptions
 
-		err = StartCluster(ops)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+func startCmd() *cobra.Command {
+	var (
+		initPasswd bool
+	)
 
-		fmt.Printf("\nCheck the status of openGemini cluster\n")
-		err = PatrolCluster(ops)
-		if err != nil {
-			fmt.Println(err)
-		}
-	},
-}
+	var cmd = &cobra.Command{
+		Use:   "start <cluster-name>",
+		Short: "Start an openGemini cluster",
+		Long:  `Start an openGemini cluster`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return cmd.Help()
+			}
 
-func StartCluster(clusterOpts utils.ClusterOptions) error {
-	starter := manager.NewGeminiStarter(clusterOpts, startOpts)
-	defer starter.Close()
+			clusterName := args[0]
+			err := cm.StartCluster(clusterName, gOpt)
+			if err != nil {
+				return err
+			}
 
-	if err := starter.PrepareForStart(); err != nil {
-		return err
+			// TODO: init password
+			return nil
+		},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			switch len(args) {
+			case 0:
+				return shellCompGetClusterName(cm, toComplete)
+			default:
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+		},
 	}
-	if err := starter.Start(); err != nil {
-		return err
-	}
-	fmt.Printf("Successfully started the openGemini cluster with version : %s\n", clusterOpts.Version)
-	return nil
-}
-
-func init() {
-	startCmd.Flags().StringP("name", "n", "", "cluster name")
-	startCmd.Flags().BoolVarP(&startOpts.SkipCreateUser, "skip-create-user", "", false, "(EXPERIMENTAL) Skip creating the user specified in topology.")
+	cmd.Flags().BoolVar(&initPasswd, "init", false, "Initialize a secure root password for the database")
+	cmd.Flags().StringSliceVarP(&gOpt.Roles, "role", "R", nil, "Only start specified roles")
+	cmd.Flags().StringSliceVarP(&gOpt.Nodes, "node", "N", nil, "Only start specified nodes")
+	return cmd
 }

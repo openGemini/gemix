@@ -168,12 +168,12 @@ func (m *ClusterMeta) GetTopology() Topology {
 
 // SetTopology implement Metadata interface.
 func (m *ClusterMeta) SetTopology(topo Topology) {
-	tidbTopo, ok := topo.(*Specification)
+	myTopo, ok := topo.(*Specification)
 	if !ok {
 		panic(fmt.Sprintln("wrong type: ", reflect.TypeOf(topo)))
 	}
 
-	m.Topology = tidbTopo
+	m.Topology = myTopo
 }
 
 // GetBaseMeta implements Metadata interface.

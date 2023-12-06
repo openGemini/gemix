@@ -55,10 +55,11 @@ func init() {
 	}
 
 	RootCmd.AddCommand(
+		templateCmd(),
 		installCmd(),
 		installCmd2(),
-		startCmd,
-		startCmd2(),
+		startCmd(),
+		startCmd2,
 		stopCmd,
 		uninstallCmd,
 		statusCmd,

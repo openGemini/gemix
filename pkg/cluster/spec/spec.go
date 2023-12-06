@@ -52,8 +52,8 @@ type (
 		SSHPort         int                  `yaml:"ssh_port,omitempty" default:"22" validate:"ssh_port:editable"`
 		TLSEnabled      bool                 `yaml:"enable_tls,omitempty"`
 		DeployDir       string               `yaml:"deploy_dir,omitempty" default:"deploy"`
+		LogDir          string               `yaml:"log_dir,omitempty" default:"logs"`
 		DataDir         string               `yaml:"data_dir,omitempty" default:"data"`
-		LogDir          string               `yaml:"log_dir,omitempty" default:"data"`
 		ResourceControl meta.ResourceControl `yaml:"resource_control,omitempty" validate:"resource_control:editable"`
 		OS              string               `yaml:"os,omitempty" default:"linux"`
 		Arch            string               `yaml:"arch,omitempty" default:"amd64"`
@@ -72,12 +72,12 @@ type (
 		GlobalOptions GlobalOptions `yaml:"global,omitempty" validate:"global:editable"`
 		//MonitoredOptions MonitoredOptions `yaml:"monitored,omitempty" validate:"monitored:editable"`
 		ServerConfigs  ServerConfigs  `yaml:"server_configs,omitempty" validate:"server_configs:ignore"`
-		TSMetaServers  []*TSMetaSpec  `yaml:"ts_meta_servers"`
-		TSSqlServers   []*TSSqlSpec   `yaml:"ts_sql_servers"`
-		TSStoreServers []*TSStoreSpec `yaml:"ts_store_servers"`
+		TSMetaServers  []*TSMetaSpec  `yaml:"ts-meta-servers"`
+		TSSqlServers   []*TSSqlSpec   `yaml:"ts-sql-servers"`
+		TSStoreServers []*TSStoreSpec `yaml:"ts-store-servers"`
 		//DashboardServers []*DashboardSpec `yaml:"opengemini_dashboard_servers,omitempty"`
 		//Monitors         []*PrometheusSpec    `yaml:"monitoring_servers"`
-		//Grafanas         []*GrafanaSpec       `yaml:"grafana_servers,omitempty"`
+		//Grafanas         []*GrafanaSpec       `yaml:"grafana-servers,omitempty"`
 
 	}
 )
@@ -315,7 +315,7 @@ func setCustomDefaults(globalOptions *GlobalOptions, field reflect.Value) error 
 	return nil
 }
 
-// GetTSMetaListWithManageHost returns a list of PD API hosts of the current cluster
+// GetTSMetaListWithManageHost returns a list of ts-meta API hosts of the current cluster
 func (s *Specification) GetTSMetaListWithManageHost() []string {
 	var tsMetaList []string
 	for _, meta := range s.TSMetaServers {

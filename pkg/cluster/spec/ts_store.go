@@ -83,7 +83,7 @@ func (s *TSStoreSpec) GetSource() string {
 	return s.Source
 }
 
-// TSStoreComponent represents PD component.
+// TSStoreComponent represents ts-meta component.
 type TSStoreComponent struct{ Topology *Specification }
 
 // Name implements Component interface.

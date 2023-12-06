@@ -83,7 +83,7 @@ func (s *TSMetaSpec) GetSource() string {
 	return s.Source
 }
 
-// TSMetaComponent represents PD component.
+// TSMetaComponent represents ts-meta component.
 type TSMetaComponent struct{ Topology *Specification }
 
 // Name implements Component interface.
