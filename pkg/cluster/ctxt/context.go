@@ -72,7 +72,7 @@ type (
 			checkResults map[string][]any
 		}
 
-		// The private/public key is used to access remote server via the user `tidb`
+		// The private/public key is used to access remote server via the user `gemini`
 		PrivateKeyPath string
 		PublicKeyPath  string
 

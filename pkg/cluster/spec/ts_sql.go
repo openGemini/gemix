@@ -80,7 +80,7 @@ func (s *TSSqlSpec) GetSource() string {
 	return s.Source
 }
 
-// TSSqlComponent represents PD component.
+// TSSqlComponent represents ts-meta component.
 type TSSqlComponent struct{ Topology *Specification }
 
 // Name implements Component interface.

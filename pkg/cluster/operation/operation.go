@@ -26,7 +26,7 @@ type Options struct {
 	// What type of things should we cleanup in clean command
 	CleanupData     bool // should we cleanup data
 	CleanupLog      bool // should we clenaup log
-	CleanupAuditLog bool // should we clenaup tidb server auit log
+	CleanupAuditLog bool // should we clenaup openGemini server auit log
 
 	// Some data will be retained when destroying instances
 	RetainDataRoles []string
