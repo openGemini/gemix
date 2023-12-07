@@ -77,3 +77,7 @@ golangci-lint-check: install-golangci-lint
 gotest:
 	@echo "running gotest begin."
 	@index=0; for s in $(PACKAGES_OPEN_GEMINI_TESTS); do index=$$(($$index+1)); if ! $(GOTEST) -failfast -short -v -count 1 -p 1 -timeout 10m -coverprofile coverage_$$index.txt -coverpkg ./... $$s; then $(FAILPOINT_DISABLE); exit 1; fi; done
+
+integration-test:
+	@echo "running integration test begin."
+	bash ./tests/gemix-cluster/test_install.sh

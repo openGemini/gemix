@@ -85,6 +85,37 @@ func Start(
 	return nil
 }
 
+// Stop the cluster.
+func Stop(
+	ctx context.Context,
+	cluster spec.Topology,
+	options Options,
+) error {
+	roleFilter := set.NewStringSet(options.Roles...)
+	nodeFilter := set.NewStringSet(options.Nodes...)
+	components := cluster.ComponentsByStopOrder()
+	components = FilterComponent(components, roleFilter)
+
+	instCount := map[string]int{}
+	cluster.IterInstance(func(inst spec.Instance) {
+		instCount[inst.GetManageHost()]++
+	})
+
+	for _, comp := range components {
+		insts := FilterInstance(comp.Instances(), nodeFilter)
+		err := StopComponent(
+			ctx,
+			insts,
+			options,
+			true,
+		)
+		if err != nil && !options.Force {
+			return errors.WithMessagef(err, "failed to stop %s", comp.Name())
+		}
+	}
+	return nil
+}
+
 func enableInstance(ctx context.Context, ins spec.Instance, timeout uint64, isEnable bool) error {
 	e := ctxt.GetInner(ctx).Get(ins.GetManageHost())
 	logger := ctx.Value(logprinter.ContextKeyLogger).(*zap.Logger)
@@ -211,96 +242,51 @@ func StartComponent(ctx context.Context, instances []spec.Instance, options Opti
 	return errg.Wait()
 }
 
-//func stopInstance(ctx context.Context, ins spec.Instance, timeout uint64) error {
-//	e := ctxt.GetInner(ctx).Get(ins.GetManageHost())
-//	logger := ctx.Value(logprinter.ContextKeyLogger).(*zap.Logger)
-//	logger.Infof("\tStopping instance %s", ins.GetManageHost())
-//
-//	if err := systemctl(ctx, e, ins.ServiceName(), "stop", timeout); err != nil {
-//		return toFailedActionError(err, "stop", ins.GetManageHost(), ins.ServiceName(), ins.LogDir())
-//	}
-//
-//	logger.Infof("\tStop %s %s success", ins.ComponentName(), ins.ID())
-//
-//	return nil
-//}
+func stopInstance(ctx context.Context, ins spec.Instance, timeout uint64) error {
+	e := ctxt.GetInner(ctx).Get(ins.GetManageHost())
+	logger := ctx.Value(logprinter.ContextKeyLogger).(*zap.Logger)
+	logger.Info(fmt.Sprintf("\tStopping instance %s", ins.GetManageHost()))
 
-// // StopComponent stop the instances.
-// func StopComponent(ctx context.Context,
-//
-//	topo spec.Topology,
-//	instances []spec.Instance,
-//	noAgentHosts set.StringSet,
-//	options Options,
-//	forceStop bool,
-//	evictLeader bool,
-//	tlsCfg *tls.Config,
-//
-//	) error {
-//		if len(instances) == 0 {
-//			return nil
-//		}
-//
-//		logger := ctx.Value(logprinter.ContextKeyLogger).(*zap.Logger)
-//		name := instances[0].ComponentName()
-//		logger.Infof("Stopping component %s", name)
-//
-//		errg, _ := errgroup.WithContext(ctx)
-//
-//		for _, ins := range instances {
-//			ins := ins
-//			switch name {
-//			case spec.ComponentNodeExporter,
-//				spec.ComponentBlackboxExporter:
-//				if noAgentHosts.Exist(ins.GetManageHost()) {
-//					logger.Debugf("Ignored stopping %s for %s:%d", name, ins.GetManageHost(), ins.GetPort())
-//					continue
-//				}
-//			case spec.ComponentCDC:
-//				nctx := checkpoint.NewContext(ctx)
-//				if !forceStop {
-//					// when scale-in cdc node, each node should be stopped one by one.
-//					cdc, ok := ins.(spec.RollingUpdateInstance)
-//					if !ok {
-//						panic("cdc should support rolling upgrade, but not")
-//					}
-//					err := cdc.PreRestart(nctx, topo, int(options.APITimeout), tlsCfg)
-//					if err != nil {
-//						// this should never hit, since all errors swallowed to trigger hard stop.
-//						return err
-//					}
-//				}
-//				if err := stopInstance(nctx, ins, options.OptTimeout); err != nil {
-//					return err
-//				}
-//				// continue here, to skip the logic below.
-//				continue
-//			}
-//
-//			// the checkpoint part of context can't be shared between goroutines
-//			// since it's used to trace the stack, so we must create a new layer
-//			// of checkpoint context every time put it into a new goroutine.
-//			nctx := checkpoint.NewContext(ctx)
-//			errg.Go(func() error {
-//				if evictLeader {
-//					rIns, ok := ins.(spec.RollingUpdateInstance)
-//					if ok {
-//						err := rIns.PreRestart(nctx, topo, int(options.APITimeout), tlsCfg)
-//						if err != nil {
-//							return err
-//						}
-//					}
-//				}
-//				err := stopInstance(nctx, ins, options.OptTimeout)
-//				if err != nil {
-//					return err
-//				}
-//				return nil
-//			})
-//		}
-//
-//		return errg.Wait()
-//	}
+	if err := systemctl(ctx, e, ins.ServiceName(), "stop", timeout); err != nil {
+		return toFailedActionError(err, "stop", ins.GetManageHost(), ins.ServiceName(), ins.LogDir())
+	}
+
+	logger.Info(fmt.Sprintf("\tStop %s %s success", ins.ComponentName(), ins.ID()))
+	return nil
+}
+
+// StopComponent stop the instances.
+func StopComponent(ctx context.Context,
+	instances []spec.Instance,
+	options Options,
+	forceStop bool,
+) error {
+	if len(instances) == 0 {
+		return nil
+	}
+
+	logger := ctx.Value(logprinter.ContextKeyLogger).(*zap.Logger)
+	name := instances[0].ComponentName()
+	logger.Info(fmt.Sprintf("Stopping component %s", name))
+
+	errg, _ := errgroup.WithContext(ctx)
+
+	for _, ins := range instances {
+		ins := ins
+		// the checkpoint part of context can't be shared between goroutines
+		// since it's used to trace the stack, so we must create a new layer
+		// of checkpoint context every time put it into a new goroutine.
+		errg.Go(func() error {
+			err := stopInstance(ctx, ins, options.OptTimeout)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+
+	return errg.Wait()
+}
 
 // toFailedActionError formats the errror msg for failed action
 func toFailedActionError(err error, action string, host, service, logDir string) error {

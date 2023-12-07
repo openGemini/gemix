@@ -15,48 +15,58 @@
 package cluster
 
 import (
-	"fmt"
-
-	"github.com/openGemini/gemix/pkg/cluster/manager"
-	"github.com/openGemini/gemix/utils"
+	"github.com/openGemini/gemix/pkg/cluster/spec"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
-// stopCmd represents the stop command
-var stopCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "stop cluster",
-	Long:  `Stop an openGemini cluster based on configuration files.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		var ops utils.ClusterOptions
-		var err error
-		if ops, err = ReadClusterOptionsByName(cmd); err != nil {
-			fmt.Println(err)
-			fmt.Println(cmd.UsageString())
-			return
-		}
+func stopCmd() *cobra.Command {
+	var cmd = &cobra.Command{
+		Use:   "stop",
+		Short: "Stop an openGemini cluster",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return cmd.Help()
+			}
 
-		err = StopCluster(ops)
-		if err != nil {
-			fmt.Println(err)
-		}
-	},
+			if err := validRoles(gOpt.Roles); err != nil {
+				return err
+			}
+
+			clusterName := args[0]
+
+			return cm.StopCluster(clusterName, gOpt, skipConfirm)
+		},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			switch len(args) {
+			case 0:
+				return shellCompGetClusterName(cm, toComplete)
+			default:
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+		},
+	}
+
+	cmd.Flags().StringSliceVarP(&gOpt.Roles, "role", "R", nil, "Only stop specified roles")
+	cmd.Flags().StringSliceVarP(&gOpt.Nodes, "node", "N", nil, "Only stop specified nodes")
+
+	return cmd
 }
 
-func StopCluster(ops utils.ClusterOptions) error {
-	stop := manager.NewGeminiStop(ops)
-	defer stop.Close()
+func validRoles(roles []string) error {
+	for _, r := range roles {
+		match := false
+		for _, has := range spec.AllComponentNames() {
+			if r == has {
+				match = true
+				break
+			}
+		}
 
-	if err := stop.Prepare(); err != nil {
-		return err
+		if !match {
+			return errors.Errorf("not valid role: %s, should be one of: %v", r, spec.AllComponentNames())
+		}
 	}
-	if err := stop.Run(); err != nil {
-		return err
-	}
-	fmt.Printf("Successfully stopped the openGemini cluster\n")
+
 	return nil
-}
-
-func init() {
-	stopCmd.Flags().StringP("name", "n", "", "cluster name")
 }

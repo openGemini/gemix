@@ -9,6 +9,7 @@ on:
       - 'scripts/**'
       - '**.md'
       - '.gitignore'
+  push: # TODO
 
 env:
   GO111MODULE: on
@@ -85,3 +86,30 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+#  IntegrationTest:
+#    name: integration test
+#    if: github.event.pull_request.draft == false
+#    needs: [GoLint]
+#    strategy:
+#      fail-fast: true
+#      matrix:
+#        os: ["ubuntu-latest"] # "macOS-latest"
+#        go: ["1.19.x"]
+#    runs-on: ${{ matrix.os }}
+#    timeout-minutes: 30
+#    steps:
+#      - uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 1
+#      - uses: WillAbides/setup-go-faster@v1.7.0
+#        with:
+#          go-version: ${{ matrix.go }}
+#      - name: Build gemix
+#        run: |
+#          go mod tidy
+#          go build .
+#          chmod +x ./gemix
+#          cp ./gemix /usr/local/bin
+#      - name: Run integration test
+#        run: |
+#          make integration-test
