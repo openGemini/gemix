@@ -153,7 +153,7 @@ func (i *TSSqlInstance) InitConfig(ctx context.Context, e ctxt.Executor, cluster
 		return errors.WithStack(err)
 	}
 
-	dst := filepath.Join(paths.Deploy, "scripts", "run_ts_sql.sh")
+	dst := filepath.Join(paths.Deploy, "scripts", "run_ts-sql.sh")
 	if err := e.Transfer(ctx, fp, dst, false, 0, false); err != nil {
 		return errors.WithStack(err)
 	}

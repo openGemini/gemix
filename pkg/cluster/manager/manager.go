@@ -54,7 +54,7 @@ func (m *Manager) meta(name string) (metadata spec.Metadata, err error) {
 		return nil, errors.Errorf("%s cluster `%s` not exists", m.sysName, name)
 	}
 
-	metadata = m.specManager.NewMetadata() // TODO: 没有可用信息
+	metadata = m.specManager.NewMetadata()
 	err = m.specManager.Metadata(name, metadata)
 	if err != nil {
 		return metadata, err

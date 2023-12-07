@@ -17,7 +17,6 @@ import (
 	"bytes"
 	"os"
 	"path"
-	"strings"
 	"text/template"
 
 	"github.com/openGemini/gemix/embed"
@@ -43,7 +42,7 @@ type Config struct {
 // NewConfig returns a Config with given arguments
 func NewConfig(service, user, deployDir string) *Config {
 	return &Config{
-		ServiceName: strings.ReplaceAll(service, "-", "_"),
+		ServiceName: service,
 		User:        user,
 		DeployDir:   deployDir,
 	}

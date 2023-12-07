@@ -158,7 +158,7 @@ func (i *TSMetaInstance) InitConfig(ctx context.Context, e ctxt.Executor, cluste
 	if err := cfg.ConfigToFile(fp); err != nil {
 		return errors.WithStack(err)
 	}
-	dst := filepath.Join(paths.Deploy, "scripts", "run_ts_meta.sh")
+	dst := filepath.Join(paths.Deploy, "scripts", "run_ts-meta.sh")
 	if err := e.Transfer(ctx, fp, dst, false, 0, false); err != nil {
 		return errors.WithStack(err)
 	}

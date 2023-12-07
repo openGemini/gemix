@@ -121,6 +121,16 @@ type Metadata interface {
 	GetBaseMeta() *BaseMeta
 }
 
+// AllComponentNames contains the names of all components.
+// should include all components in ComponentsByStartOrder
+func AllComponentNames() (roles []string) {
+	tp := &Specification{}
+	tp.IterComponent(func(c Component) {
+		roles = append(roles, c.Name())
+	})
+	return
+}
+
 // UnmarshalYAML implements the yaml.Unmarshaler interface,
 // it sets the default values when unmarshaling the topology file
 func (s *Specification) UnmarshalYAML(unmarshal func(any) error) error {
@@ -356,6 +366,13 @@ func (s *Specification) ComponentsByStartOrder() (comps []Component) {
 	comps = append(comps, &TSSqlComponent{s})
 	//comps = append(comps, &TSDataComponent{s})
 	return
+}
+
+// IterComponent iterates all components in component starting order
+func (s *Specification) IterComponent(fn func(comp Component)) {
+	for _, comp := range s.ComponentsByStartOrder() {
+		fn(comp)
+	}
 }
 
 // IterInstance iterates all instances in component starting order
