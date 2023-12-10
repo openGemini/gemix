@@ -87,6 +87,6 @@ func (m *Manager) StopCluster(
 		return errors.WithStack(err)
 	}
 
-	m.logger.Info(fmt.Sprintf("Stopped cluster `%s` successfully", name))
+	m.logger.Infof(fmt.Sprintf("Stopped cluster `%s` successfully", name))
 	return nil
 }

@@ -17,18 +17,18 @@ import (
 	"context"
 
 	"github.com/openGemini/gemix/pkg/cluster/spec"
+	logprinter "github.com/openGemini/gemix/pkg/logger/printer"
 	"github.com/openGemini/gemix/pkg/meta"
-	"go.uber.org/zap"
 )
 
-// Builder is used to build TiUP task
+// Builder is used to build task
 type Builder struct {
 	tasks  []Task
-	Logger *zap.Logger
+	Logger *logprinter.Logger
 }
 
 // NewBuilder returns a *Builder instance
-func NewBuilder(logger *zap.Logger) *Builder {
+func NewBuilder(logger *logprinter.Logger) *Builder {
 	return &Builder{Logger: logger}
 }
 
@@ -49,7 +49,7 @@ func (b *Builder) RootSSH(
 }
 
 // NewSimpleUerSSH  append a UserSSH task to the current task collection with operator.Options and SSHConnectionProps
-func NewSimpleUerSSH(logger *zap.Logger, host string, port int, user string, sshTimeout, exeTimeout uint64) *Builder {
+func NewSimpleUerSSH(logger *logprinter.Logger, host string, port int, user string, sshTimeout, exeTimeout uint64) *Builder {
 	return NewBuilder(logger).
 		UserSSH(
 			host,
@@ -226,7 +226,7 @@ func (b *Builder) Build() Task {
 }
 
 // Step appends a new StepDisplay task, which will print single line progress for inner tasks.
-func (b *Builder) Step(prefix string, inner Task, logger *zap.Logger) *Builder {
+func (b *Builder) Step(prefix string, inner Task, logger *logprinter.Logger) *Builder {
 	b.Serial(newStepDisplay(prefix, inner, logger))
 	return b
 }

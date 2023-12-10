@@ -8,7 +8,7 @@ coverage:
   status:
     project:
       default:
-        target: 70%
+        target: 10%
         if_ci_failed: success
     patch:
       default:

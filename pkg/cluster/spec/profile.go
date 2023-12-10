@@ -75,7 +75,7 @@ func Initialize(base string) error {
 	return os.MkdirAll(profileDir, 0750)
 }
 
-// ProfileDir returns the full profile directory path of TiUP.
+// ProfileDir returns the full profile directory path of gemix.
 func ProfileDir() string {
 	return profileDir
 }

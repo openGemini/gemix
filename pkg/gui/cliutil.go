@@ -22,6 +22,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	errNS             = errorx.NewNamespace("gui")
+	errMismatchArgs   = errNS.NewType("mismatch_args", utils.ErrTraitPreCheck)
+	errOperationAbort = errNS.NewType("operation_aborted", utils.ErrTraitPreCheck)
+)
+
 // CheckCommandArgsAndMayPrintHelp checks whether user passes enough number of arguments.
 // If insufficient number of arguments are passed, an error with proper suggestion will be raised.
 // When no argument is passed, command help will be printed and no error will be raised.
@@ -34,7 +40,9 @@ func CheckCommandArgsAndMayPrintHelp(cmd *cobra.Command, args []string, minArgs 
 		return false, cmd.Help()
 	}
 	if lenArgs < minArgs {
-		return false, fmt.Errorf("expect at least %d arguments, but received %d arguments", minArgs, len(args))
+		return false, errMismatchArgs.
+			New("Expect at least %d arguments, but received %d arguments", minArgs, lenArgs).
+			WithProperty(SuggestionFromString(cmd.UsageString()))
 	}
 	return true, nil
 }

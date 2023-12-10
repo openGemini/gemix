@@ -20,6 +20,9 @@ import (
 	"golang.org/x/mod/semver"
 )
 
+// NightlyVersionAlias represents latest build of master branch.
+const NightlyVersionAlias = "nightly"
+
 // LatestVersionAlias represents the latest build (excluding nightly versions).
 const LatestVersionAlias = "latest"
 
@@ -40,4 +43,29 @@ func FmtVer(ver string) (string, error) {
 		return v, fmt.Errorf("version %s is not a valid SemVer string", ver)
 	}
 	return v, nil
+}
+
+type (
+	// Version represents a version string, like: v3.1.2
+	Version string
+)
+
+// IsValid checks whether is the version string valid
+func (v Version) IsValid() bool {
+	return v != "" && semver.IsValid(string(v))
+}
+
+// IsEmpty returns true if the `Version` is a empty string
+func (v Version) IsEmpty() bool {
+	return v == ""
+}
+
+// IsNightly returns true if the version is nightly
+func (v Version) IsNightly() bool {
+	return strings.Contains(string(v), NightlyVersionAlias)
+}
+
+// String implements the fmt.Stringer interface
+func (v Version) String() string {
+	return string(v)
 }

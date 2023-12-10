@@ -46,7 +46,6 @@ func installCmd2() *cobra.Command {
 			return err
 		},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			fmt.Println("install validate func args", args)
 			switch len(args) {
 			case 2:
 				return nil, cobra.ShellCompDirectiveDefault
@@ -154,4 +153,20 @@ func GetEnv(envVar string) (bool, string) {
 	} else {
 		return true, value
 	}
+}
+
+func ReadClusterOptionsByName(cmd *cobra.Command) (utils.ClusterOptions, error) {
+	var ops utils.ClusterOptions
+	var err error
+	if name, _ := cmd.Flags().GetString("name"); name == "" {
+		return ops, fmt.Errorf("the cluster name is required")
+	} else if !utils.CheckClusterNameExist(name) {
+		return ops, fmt.Errorf("the cluster name is not existed, please install the cluster first")
+	} else {
+		ops, err = utils.LoadClusterOptionsFromFile(filepath.Join(utils.ClusterInfoDir, name))
+		if err != nil {
+			return ops, err
+		}
+	}
+	return ops, err
 }

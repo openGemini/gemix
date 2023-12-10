@@ -16,7 +16,14 @@ package logger
 
 import (
 	"bytes"
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
 
+	"github.com/openGemini/gemix/pkg/gui"
+	"github.com/openGemini/gemix/pkg/localdata"
+	"github.com/openGemini/gemix/pkg/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -31,25 +38,25 @@ func newDebugLogCore() zapcore.Core {
 
 // OutputDebugLog outputs debug log in the current working directory.
 func OutputDebugLog(prefix string) {
-	//logDir := os.Getenv(localdata.EnvNameLogPath)
-	//if logDir == "" {
-	//	profile := localdata.InitProfile()
-	//	logDir = profile.Path("logs")
-	//}
-	//if err := os.MkdirAll(logDir, 0750); err != nil {
-	//	_, _ = fmt.Fprintf(os.Stderr, "\nCreate debug logs(%s) directory failed %v.\n", logDir, err)
-	//	return
-	//}
-	//
-	//// FIXME: Stupid go does not allow writing fraction seconds without a leading dot.
-	//fileName := time.Now().Format(fmt.Sprintf("%s-debug-2006-01-02-15-04-05.log", prefix))
-	//filePath := filepath.Join(logDir, fileName)
-	//
-	//err := utils.WriteFile(filePath, debugBuffer.Bytes(), 0644)
-	//if err != nil {
-	//	_, _ = gui.ColorWarningMsg.Fprint(os.Stderr, "\nWarn: Failed to write error debug log.\n")
-	//} else {
-	//	_, _ = fmt.Fprintf(os.Stderr, "\nVerbose debug logs has been written to %s.\n", tui.ColorKeyword.Sprint(filePath))
-	//}
+	logDir := os.Getenv(localdata.EnvNameLogPath)
+	if logDir == "" {
+		profile := localdata.InitProfile()
+		logDir = profile.Path("logs")
+	}
+	if err := os.MkdirAll(logDir, 0750); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "\nCreate debug logs(%s) directory failed %v.\n", logDir, err)
+		return
+	}
+
+	// FIXME: Stupid go does not allow writing fraction seconds without a leading dot.
+	fileName := time.Now().Format(fmt.Sprintf("%s-debug-2006-01-02-15-04-05.log", prefix))
+	filePath := filepath.Join(logDir, fileName)
+
+	err := utils.WriteFile(filePath, debugBuffer.Bytes(), 0644)
+	if err != nil {
+		_, _ = gui.ColorWarningMsg.Fprint(os.Stderr, "\nWarn: Failed to write error debug log.\n")
+	} else {
+		_, _ = fmt.Fprintf(os.Stderr, "\nVerbose debug logs has been written to %s.\n", gui.ColorKeyword.Sprint(filePath))
+	}
 	debugBuffer.Reset()
 }

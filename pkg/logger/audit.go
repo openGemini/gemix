@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"os"
 
+	"github.com/openGemini/gemix/pkg/cluster/audit"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -54,10 +55,10 @@ func OutputAuditLogToFileIfEnabled(dir, fileSuffix string) error {
 		return err
 	}
 
-	//err := audit.OutputAuditLog(dir, fileSuffix, auditBuffer.Bytes())
-	//if err != nil {
-	//	return err
-	//}
+	err := audit.OutputAuditLog(dir, fileSuffix, auditBuffer.Bytes())
+	if err != nil {
+		return err
+	}
 
 	if dir == auditDir {
 		auditBuffer.Reset()

@@ -26,7 +26,6 @@ import (
 	logprinter "github.com/openGemini/gemix/pkg/logger/printer"
 	"github.com/openGemini/gemix/pkg/set"
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -118,28 +117,28 @@ func Stop(
 
 func enableInstance(ctx context.Context, ins spec.Instance, timeout uint64, isEnable bool) error {
 	e := ctxt.GetInner(ctx).Get(ins.GetManageHost())
-	logger := ctx.Value(logprinter.ContextKeyLogger).(*zap.Logger)
+	logger := ctx.Value(logprinter.ContextKeyLogger).(*logprinter.Logger)
 
 	action := "disable"
 	if isEnable {
 		action = "enable"
 	}
-	logger.Info(fmt.Sprintf("\t%s instance %s", actionPrevMsgs[action], ins.ID()))
+	logger.Infof("\t%s instance %s", actionPrevMsgs[action], ins.ID())
 
 	// Enable/Disable by systemd.
 	if err := systemctl(ctx, e, ins.ServiceName(), action, timeout); err != nil {
 		return toFailedActionError(err, action, ins.GetManageHost(), ins.ServiceName(), ins.LogDir())
 	}
 
-	logger.Info(fmt.Sprintf("\t%s instance %s success", actionPostMsgs[action], ins.ID()))
+	logger.Infof("\t%s instance %s success", actionPostMsgs[action], ins.ID())
 
 	return nil
 }
 
 func startInstance(ctx context.Context, ins spec.Instance, timeout uint64, tlsCfg *tls.Config) error {
 	e := ctxt.GetInner(ctx).Get(ins.GetManageHost())
-	logger := ctx.Value(logprinter.ContextKeyLogger).(*zap.Logger)
-	logger.Info(fmt.Sprintf("\tStarting instance %s", ins.ID()))
+	logger := ctx.Value(logprinter.ContextKeyLogger).(*logprinter.Logger)
+	logger.Infof("\tStarting instance %s", ins.ID())
 
 	if err := systemctl(ctx, e, ins.ServiceName(), "start", timeout); err != nil {
 		return toFailedActionError(err, "start", ins.GetManageHost(), ins.ServiceName(), ins.LogDir())
@@ -150,13 +149,13 @@ func startInstance(ctx context.Context, ins spec.Instance, timeout uint64, tlsCf
 		return toFailedActionError(err, "start", ins.GetManageHost(), ins.ServiceName(), ins.LogDir())
 	}
 
-	logger.Info(fmt.Sprintf("\tStart instance %s success", ins.ID()))
+	logger.Infof("\tStart instance %s success", ins.ID())
 
 	return nil
 }
 
 func systemctl(ctx context.Context, executor ctxt.Executor, service string, action string, timeout uint64) error {
-	logger := ctx.Value(logprinter.ContextKeyLogger).(*zap.Logger)
+	logger := ctx.Value(logprinter.ContextKeyLogger).(*logprinter.Logger)
 	c := module.SystemdModuleConfig{
 		Unit:         service,
 		ReloadDaemon: true,
@@ -170,7 +169,7 @@ func systemctl(ctx context.Context, executor ctxt.Executor, service string, acti
 		fmt.Println(string(stdout))
 	}
 	if len(stderr) > 0 && !bytes.Contains(stderr, []byte("Created symlink ")) && !bytes.Contains(stderr, []byte("Removed symlink ")) {
-		logger.Error(string(stderr))
+		logger.Errorf(string(stderr))
 	}
 	if len(stderr) > 0 && action == "stop" {
 		// ignore "unit not loaded" error, as this means the unit is not
@@ -178,10 +177,10 @@ func systemctl(ctx context.Context, executor ctxt.Executor, service string, acti
 		// NOTE: there will be a potential bug if the unit name is set
 		// wrong and the real unit still remains started.
 		if bytes.Contains(stderr, []byte(" not loaded.")) {
-			logger.Warn(string(stderr))
+			logger.Warnf(string(stderr))
 			return nil // reset the error to avoid exiting
 		}
-		logger.Error(string(stderr))
+		logger.Errorf(string(stderr))
 	}
 	return err
 }
@@ -192,12 +191,12 @@ func EnableComponent(ctx context.Context, instances []spec.Instance, noAgentHost
 		return nil
 	}
 
-	logger := ctx.Value(logprinter.ContextKeyLogger).(*zap.Logger)
+	logger := ctx.Value(logprinter.ContextKeyLogger).(*logprinter.Logger)
 	name := instances[0].ComponentName()
 	if isEnable {
-		logger.Info(fmt.Sprintf("Enabling component %s", name))
+		logger.Infof(fmt.Sprintf("Enabling component %s", name))
 	} else {
-		logger.Info(fmt.Sprintf("Disabling component %s", name))
+		logger.Infof(fmt.Sprintf("Disabling component %s", name))
 	}
 
 	errg, _ := errgroup.WithContext(ctx)
@@ -223,9 +222,9 @@ func StartComponent(ctx context.Context, instances []spec.Instance, options Opti
 		return nil
 	}
 
-	logger := ctx.Value(logprinter.ContextKeyLogger).(*zap.Logger)
+	logger := ctx.Value(logprinter.ContextKeyLogger).(*logprinter.Logger)
 	name := instances[0].ComponentName()
-	logger.Info(fmt.Sprintf("Starting component %s", name))
+	logger.Infof(fmt.Sprintf("Starting component %s", name))
 
 	errg, _ := errgroup.WithContext(ctx)
 	for _, ins := range instances {
@@ -244,14 +243,14 @@ func StartComponent(ctx context.Context, instances []spec.Instance, options Opti
 
 func stopInstance(ctx context.Context, ins spec.Instance, timeout uint64) error {
 	e := ctxt.GetInner(ctx).Get(ins.GetManageHost())
-	logger := ctx.Value(logprinter.ContextKeyLogger).(*zap.Logger)
-	logger.Info(fmt.Sprintf("\tStopping instance %s", ins.GetManageHost()))
+	logger := ctx.Value(logprinter.ContextKeyLogger).(*logprinter.Logger)
+	logger.Infof("\tStopping instance %s", ins.GetManageHost())
 
 	if err := systemctl(ctx, e, ins.ServiceName(), "stop", timeout); err != nil {
 		return toFailedActionError(err, "stop", ins.GetManageHost(), ins.ServiceName(), ins.LogDir())
 	}
 
-	logger.Info(fmt.Sprintf("\tStop %s %s success", ins.ComponentName(), ins.ID()))
+	logger.Infof("\tStop %s %s success", ins.ComponentName(), ins.ID())
 	return nil
 }
 
@@ -265,9 +264,9 @@ func StopComponent(ctx context.Context,
 		return nil
 	}
 
-	logger := ctx.Value(logprinter.ContextKeyLogger).(*zap.Logger)
+	logger := ctx.Value(logprinter.ContextKeyLogger).(*logprinter.Logger)
 	name := instances[0].ComponentName()
-	logger.Info(fmt.Sprintf("Stopping component %s", name))
+	logger.Infof("Stopping component %s", name)
 
 	errg, _ := errgroup.WithContext(ctx)
 
@@ -305,12 +304,12 @@ func executeSSHCommand(ctx context.Context, action, host, command string) error 
 	if !found {
 		return fmt.Errorf("no executor")
 	}
-	logger := ctx.Value(logprinter.ContextKeyLogger).(*zap.Logger)
-	logger.Info(fmt.Sprintf("\t%s on %s", action, host))
+	logger := ctx.Value(logprinter.ContextKeyLogger).(*logprinter.Logger)
+	logger.Infof("\t%s on %s", action, host)
 	stdout, stderr, err := e.Execute(ctx, command, false)
 	if err != nil {
 		return errors.WithMessagef(err, "stderr: %s", string(stderr))
 	}
-	logger.Info(fmt.Sprintf("\t%s", stdout))
+	logger.Infof("\t%s", stdout)
 	return nil
 }
