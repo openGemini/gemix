@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"os"
 	"time"
 
 	"github.com/openGemini/gemix/cmd/cluster"
@@ -34,11 +33,8 @@ var RootCmd = &cobra.Command{
 }
 
 func Execute() {
-	RootCmd.AddCommand(cluster.RootCmd)
-	err := RootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
-	}
+	RootCmd.AddCommand(cluster.ClusterCmd)
+	cluster.Execute()
 }
 
 var (

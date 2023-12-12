@@ -134,6 +134,11 @@ func (s *SpecManager) Exist(clusterName string) (exist bool, err error) {
 	return true, nil
 }
 
+// Remove removes the data with specified cluster name.
+func (s *SpecManager) Remove(clusterName string) error {
+	return os.RemoveAll(s.Path(clusterName))
+}
+
 // ensureDir ensures that the cluster directory exists.
 func (s *SpecManager) ensureDir(clusterName string) error {
 	if err := os.MkdirAll(s.Path(clusterName), 0750); err != nil {

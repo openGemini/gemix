@@ -20,7 +20,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/openGemini/gemix/pkg/cluster/ctxt"
 	"github.com/openGemini/gemix/pkg/gui/progress"
-	"go.uber.org/zap"
+	logprinter "github.com/openGemini/gemix/pkg/logger/printer"
 )
 
 // StepDisplay is a task that will display a progress bar for inner task.
@@ -29,7 +29,7 @@ type StepDisplay struct {
 	inner    Task
 	prefix   string
 	children map[Task]struct{}
-	Logger   *zap.Logger
+	Logger   *logprinter.Logger
 
 	teaProgram *tea.Program
 }
@@ -56,7 +56,7 @@ func addChildren(m map[Task]struct{}, task Task) {
 	}
 }
 
-func newStepDisplay(prefix string, inner Task, logger *zap.Logger) *StepDisplay {
+func newStepDisplay(prefix string, inner Task, logger *logprinter.Logger) *StepDisplay {
 	children := make(map[Task]struct{})
 	addChildren(children, inner)
 	return &StepDisplay{
@@ -70,7 +70,7 @@ func newStepDisplay(prefix string, inner Task, logger *zap.Logger) *StepDisplay 
 }
 
 // SetLogger set the logger of step
-func (s *StepDisplay) SetLogger(logger *zap.Logger) *StepDisplay {
+func (s *StepDisplay) SetLogger(logger *logprinter.Logger) *StepDisplay {
 	s.Logger = logger
 	return s
 }
@@ -121,7 +121,7 @@ func (s *StepDisplay) handleTaskProgress(task Task, p string) {
 type ParallelStepDisplay struct {
 	inner  *Parallel
 	prefix string
-	Logger *zap.Logger
+	Logger *logprinter.Logger
 }
 
 func newParallelStepDisplay(prefix string, ignoreError bool, sdTasks ...*StepDisplay) *ParallelStepDisplay {
@@ -136,7 +136,7 @@ func newParallelStepDisplay(prefix string, ignoreError bool, sdTasks ...*StepDis
 }
 
 // SetLogger set the logger of step
-func (ps *ParallelStepDisplay) SetLogger(logger *zap.Logger) *ParallelStepDisplay {
+func (ps *ParallelStepDisplay) SetLogger(logger *logprinter.Logger) *ParallelStepDisplay {
 	ps.Logger = logger
 	return ps
 }

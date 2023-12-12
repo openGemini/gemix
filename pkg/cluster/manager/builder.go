@@ -20,12 +20,12 @@ import (
 	operator "github.com/openGemini/gemix/pkg/cluster/operation"
 	"github.com/openGemini/gemix/pkg/cluster/spec"
 	"github.com/openGemini/gemix/pkg/cluster/task"
+	logprinter "github.com/openGemini/gemix/pkg/logger/printer"
 	"github.com/openGemini/gemix/pkg/meta"
-	"go.uber.org/zap"
 )
 
 // buildDownloadCompTasks build download component tasks
-func buildDownloadCompTasks(clusterVersion string, topo spec.Topology) []*task.StepDisplay {
+func buildDownloadCompTasks(clusterVersion string, topo spec.Topology, logger *logprinter.Logger) []*task.StepDisplay {
 	var tasks []*task.StepDisplay
 	uniqueTasks := make(map[string]struct{})
 
@@ -34,7 +34,7 @@ func buildDownloadCompTasks(clusterVersion string, topo spec.Topology) []*task.S
 		if _, found := uniqueTasks[key]; !found {
 			uniqueTasks[key] = struct{}{}
 
-			t := task.NewBuilder(zap.L()).
+			t := task.NewBuilder(logger).
 				Download(inst.ComponentSource(), inst.OS(), inst.Arch(), clusterVersion).
 				BuildAsStep(fmt.Sprintf("  - Download %s:%s (%s/%s)",
 					inst.ComponentSource(), clusterVersion, inst.OS(), inst.Arch()))

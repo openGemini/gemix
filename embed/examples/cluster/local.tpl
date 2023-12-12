@@ -24,25 +24,25 @@ global:
   {{- end }}
 
 {{ if .TSMetaServers -}}
-ts-meta-servers:
+ts_meta_servers:
 {{- range .TSMetaServers }}
   - host: {{ . }}
 {{- end }}
 {{ end }}
 {{ if .TSSqlServers -}}
-ts-sql-servers:
+ts_sql_servers:
 {{- range .TSSqlServers }}
   - host: {{ . }}
 {{- end }}
 {{ end }}
 {{ if .TSStoreServers -}}
-ts-store-servers:
+ts_store_servers:
 {{- range .TSStoreServers }}
   - host: {{ . }}
 {{- end }}
 {{ end }}
 {{ if .GrafanaServers -}}
-grafana-servers:
+grafana_servers:
  {{- range .GrafanaServers }}
   - host: {{ . }}
 {{- end }}

@@ -23,8 +23,8 @@ import (
 	"github.com/openGemini/gemix/pkg/cluster/spec"
 	"github.com/openGemini/gemix/pkg/cluster/task"
 	"github.com/openGemini/gemix/pkg/gui"
+	logprinter "github.com/openGemini/gemix/pkg/logger/printer"
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
 )
 
 // Manager to deploy a cluster.
@@ -32,11 +32,11 @@ type Manager struct {
 	sysName     string
 	specManager *spec.SpecManager
 	//bindVersion spec.BindVersion
-	logger *zap.Logger
+	logger *logprinter.Logger
 }
 
 // NewManager create a Manager.
-func NewManager(sysName string, specManager *spec.SpecManager, logger *zap.Logger) *Manager {
+func NewManager(sysName string, specManager *spec.SpecManager, logger *logprinter.Logger) *Manager {
 	return &Manager{
 		sysName:     sysName,
 		specManager: specManager,

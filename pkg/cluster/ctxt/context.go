@@ -21,7 +21,6 @@ import (
 	"time"
 
 	logprinter "github.com/openGemini/gemix/pkg/logger/printer"
-	"go.uber.org/zap"
 )
 
 type contextKey string
@@ -36,7 +35,7 @@ const (
 )
 
 type (
-	// Executor is the executor interface for TiUP, all tasks will in the end
+	// Executor is the executor interface for gemix, all tasks will in the end
 	// be passed to a executor and then be actually performed.
 	Executor interface {
 		// Execute run the command, then return it's stdout and stderr
@@ -81,7 +80,7 @@ type (
 )
 
 // New create a context instance.
-func New(ctx context.Context, limit int, logger *zap.Logger) context.Context {
+func New(ctx context.Context, limit int, logger *logprinter.Logger) context.Context {
 	concurrency := runtime.NumCPU()
 	if limit > 0 {
 		concurrency = limit

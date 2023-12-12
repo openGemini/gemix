@@ -1,4 +1,4 @@
-// Copyright 2023 Huawei Cloud Computing Technologies Co., Ltd.
+// Copyright 2020 PingCAP, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -8,55 +8,65 @@
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
 package cluster
 
 import (
-	"fmt"
-
-	"github.com/openGemini/gemix/pkg/cluster/manager"
-	"github.com/openGemini/gemix/utils"
+	operator "github.com/openGemini/gemix/pkg/cluster/operation"
+	"github.com/openGemini/gemix/pkg/cluster/spec"
+	"github.com/openGemini/gemix/pkg/set"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
-// uninstallCmd represents the uninstall command
-var uninstallCmd = &cobra.Command{
-	Use:   "uninstall",
-	Short: "uninstall cluster",
-	Long:  `uninstall an openGemini cluster based on configuration files.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		var ops utils.ClusterOptions
-		var err error
-		if ops, err = ReadClusterOptionsByName(cmd); err != nil {
-			fmt.Println(err)
-			fmt.Println(cmd.UsageString())
-			return
-		}
+func newUninstallCmd() *cobra.Command {
+	destroyOpt := operator.Options{}
+	cmd := &cobra.Command{
+		Use:   "uninstall <cluster-name>",
+		Short: "Uninstall a specified cluster",
+		Long: `Uninstall a specified cluster, which will clean the deployment binaries and data.
+`,
+		//You can retain some nodes and roles data when destroy cluster, see Example:
+		//		Example: `
+		//$ gemix cluster uninstall <cluster-name> --retain-role-data grafana
+		//$ gemix cluster uninstall <cluster-name> --retain-node-data 172.16.13.11:3000
+		//$ gemix cluster uninstall <cluster-name> --retain-node-data 172.16.13.12
+		//		`,
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return cmd.Help()
+			}
 
-		err = UninstallCluster(ops)
-		if err != nil {
-			fmt.Println(err)
-		}
-	},
-}
+			clusterName := args[0]
 
-func UninstallCluster(ops utils.ClusterOptions) error {
-	uninstaller := manager.NewGeminiUninstaller(ops)
-	defer uninstaller.Close()
+			// Validate the retained roles to prevent unexpected deleting data
+			if len(destroyOpt.RetainDataRoles) > 0 {
+				roles := set.NewStringSet(spec.AllComponentNames()...)
+				for _, role := range destroyOpt.RetainDataRoles {
+					if !roles.Exist(role) {
+						return errors.Errorf("role name `%s` invalid", role)
+					}
+				}
+			}
 
-	if err := uninstaller.Prepare(); err != nil {
-		return err
+			return cm.UninstallCluster(clusterName, gOpt, destroyOpt, skipConfirm)
+		},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			switch len(args) {
+			case 0:
+				return shellCompGetClusterName(cm, toComplete)
+			default:
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+		},
 	}
-	if err := uninstaller.Run(); err != nil {
-		return err
-	}
-	fmt.Printf("Successfully uninstalled the openGemini cluster with version : %s\n", ops.Version)
-	return nil
-}
 
-func init() {
-	uninstallCmd.Flags().StringP("name", "n", "", "cluster name")
+	//cmd.Flags().StringArrayVar(&destroyOpt.RetainDataNodes, "retain-node-data", nil, "Specify the nodes or hosts whose data will be retained")
+	//cmd.Flags().StringArrayVar(&destroyOpt.RetainDataRoles, "retain-role-data", nil, "Specify the roles whose data will be retained")
+	cmd.Flags().BoolVar(&destroyOpt.Force, "force", false, "Force will ignore remote error while destroy the cluster")
+
+	return cmd
 }

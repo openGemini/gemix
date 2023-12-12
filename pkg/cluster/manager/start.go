@@ -31,13 +31,12 @@ import (
 	"github.com/openGemini/gemix/pkg/cluster/task"
 	"github.com/openGemini/gemix/utils"
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
 	"golang.org/x/crypto/ssh"
 )
 
 // StartCluster start the cluster with specified name.
 func (m *Manager) StartCluster(name string, gOpt operation.Options, fn ...func(b *task.Builder, metadata spec.Metadata)) error {
-	m.logger.Info("Starting cluster ...", zap.String("cluster name", name))
+	m.logger.Infof("Starting cluster %s...", name)
 
 	// check locked
 	//if err := m.specManager.ScaleOutLockedErr(name); err != nil {
@@ -85,7 +84,7 @@ func (m *Manager) StartCluster(name string, gOpt operation.Options, fn ...func(b
 		return errors.WithStack(err)
 	}
 
-	m.logger.Info("Started cluster successfully", zap.String("cluster name", name))
+	m.logger.Infof("Started cluster `%s` successfully", name)
 	return nil
 }
 

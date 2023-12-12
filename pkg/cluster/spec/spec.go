@@ -72,12 +72,12 @@ type (
 		GlobalOptions GlobalOptions `yaml:"global,omitempty" validate:"global:editable"`
 		//MonitoredOptions MonitoredOptions `yaml:"monitored,omitempty" validate:"monitored:editable"`
 		ServerConfigs  ServerConfigs  `yaml:"server_configs,omitempty" validate:"server_configs:ignore"`
-		TSMetaServers  []*TSMetaSpec  `yaml:"ts-meta-servers"`
-		TSSqlServers   []*TSSqlSpec   `yaml:"ts-sql-servers"`
-		TSStoreServers []*TSStoreSpec `yaml:"ts-store-servers"`
+		TSMetaServers  []*TSMetaSpec  `yaml:"ts_meta_servers"`
+		TSSqlServers   []*TSSqlSpec   `yaml:"ts_sql_servers"`
+		TSStoreServers []*TSStoreSpec `yaml:"ts_store_servers"`
 		//DashboardServers []*DashboardSpec `yaml:"opengemini_dashboard_servers,omitempty"`
 		//Monitors         []*PrometheusSpec    `yaml:"monitoring_servers"`
-		//Grafanas         []*GrafanaSpec       `yaml:"grafana-servers,omitempty"`
+		//Grafanas         []*GrafanaSpec       `yaml:"grafana_servers,omitempty"`
 
 	}
 )
@@ -93,7 +93,7 @@ type Topology interface {
 	ComponentsByStopOrder() []Component
 	//ComponentsByUpdateOrder(curVer string) []Component
 	IterInstance(fn func(instance Instance), concurrency ...int)
-	//CountDir(host string, dir string) int // count how many time a path is used by instances in cluster
+	CountDir(host string, dir string) int // count how many time a path is used by instances in cluster
 	//TLSConfig(dir string) (*tls.Config, error)
 	//Merge(that Topology) Topology // TODO: for update
 	FillHostArchOrOS(hostArchmap map[string]string, fullType FullHostType) error

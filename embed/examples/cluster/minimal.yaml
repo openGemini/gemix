@@ -50,7 +50,7 @@ global:
   # ts-monitor:
 
 # Server configs are used to specify the configuration of ts-meta Servers.
-ts-meta-servers:
+ts_meta_servers:
   ### The ip address of the ts-meta Server.
   - host: 10.0.1.11
     ### SSH port of the server.
@@ -95,7 +95,7 @@ ts-meta-servers:
     #   logging.level: warning
 
 ### Server configs are used to specify the configuration of ts-sql Servers.
-ts-sql-servers:
+ts_sql_servers:
   ### The ip address of the ts-sql Server.
   - host: 10.0.1.14
     ### SSH port of the server.
@@ -124,7 +124,7 @@ ts-sql-servers:
     #   logging.level: warning
 
 ### Server configs are used to specify the configuration of ts-store Servers.
-ts-store-servers:
+ts_store_servers:
   ### The ip address of the ts-store Server.
   - host: 10.0.1.14
     ### SSH port of the server.
