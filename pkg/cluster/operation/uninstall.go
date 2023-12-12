@@ -191,7 +191,6 @@ func DestroyComponent(ctx context.Context, instances []spec.Instance, cls spec.T
 
 	logger := ctx.Value(logprinter.ContextKeyLogger).(*logprinter.Logger)
 	name := instances[0].ComponentName()
-	fmt.Printf("Destroying component %s\n", name)
 	logger.Infof("Destroying component %s\n", name)
 
 	retainDataRoles := set.NewStringSet(options.RetainDataRoles...)
