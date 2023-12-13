@@ -22,21 +22,22 @@ import (
 	"github.com/openGemini/gemix/pkg/utils"
 )
 
-// TSMetaScript represent the data to generate ts-meta config
-type TSMetaScript struct {
+// GrafanaScript represent the data to generate Grafana config
+type GrafanaScript struct {
 	DeployDir string
 	LogDir    string
+	Version   string // 7.5.17
 }
 
 // ConfigToFile write config content to specific path
-func (c *TSMetaScript) ConfigToFile(file string) error {
-	fp := path.Join("templates", "scripts", "run_ts_meta.sh.tpl")
+func (c *GrafanaScript) ConfigToFile(file string) error {
+	fp := path.Join("templates", "scripts", "run_grafana.sh.tpl")
 	tpl, err := embed.ReadTemplate(fp)
 	if err != nil {
 		return err
 	}
 
-	tmpl, err := template.New("TSMeta").Parse(string(tpl))
+	tmpl, err := template.New("Grafana").Parse(string(tpl))
 	if err != nil {
 		return err
 	}

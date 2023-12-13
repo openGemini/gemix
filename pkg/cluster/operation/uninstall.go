@@ -31,8 +31,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Destroy the cluster.
-func Destroy(
+// Uninstall the cluster.
+func Uninstall(
 	ctx context.Context,
 	cluster spec.Topology,
 	options Options,

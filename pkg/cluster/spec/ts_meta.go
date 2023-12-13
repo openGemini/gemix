@@ -22,7 +22,7 @@ import (
 	"github.com/openGemini/gemix/pkg/cluster/ctxt"
 	"github.com/openGemini/gemix/pkg/cluster/template/scripts"
 	"github.com/openGemini/gemix/pkg/meta"
-	"github.com/openGemini/gemix/utils"
+	"github.com/openGemini/gemix/pkg/utils"
 	"github.com/pkg/errors"
 )
 

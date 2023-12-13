@@ -28,6 +28,7 @@ require (
 	golang.org/x/sync v0.3.0
 	golang.org/x/term v0.14.0
 	golang.org/x/text v0.14.0
+	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v2 v2.4.0
 	software.sslmate.com/src/go-pkcs12 v0.4.0
 )

@@ -24,7 +24,7 @@ import (
 	"path/filepath"
 
 	"github.com/openGemini/gemix/pkg/cluster/ctxt"
-	"github.com/openGemini/gemix/utils"
+	"github.com/openGemini/gemix/pkg/utils"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 )

@@ -22,7 +22,7 @@ import (
 
 	"github.com/joomcode/errorx"
 	"github.com/openGemini/gemix/pkg/gui"
-	"github.com/openGemini/gemix/utils"
+	"github.com/openGemini/gemix/pkg/utils"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
