@@ -18,10 +18,8 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"runtime"
-	"strings"
 
 	"github.com/fatih/color"
 	"github.com/joomcode/errorx"
@@ -122,12 +120,6 @@ func (m *Manager) Install(
 			WithProperty(gui.SuggestionFromString("Please check file system permissions and try again."))
 	}
 
-	var (
-		envInitTasks      []*task.StepDisplay // tasks which are used to initialize environment
-		downloadCompTasks []*task.StepDisplay // tasks which are used to download components
-		deployCompTasks   []*task.StepDisplay // tasks which are used to copy components to remote host
-	)
-
 	// Initialize environment
 
 	globalOptions := base.GlobalOptions
@@ -140,115 +132,17 @@ func (m *Manager) Install(
 	//	return err
 	//}
 
-	uniqueHosts := getAllUniqueHosts(topo)
+	// tasks which are used to download components, download missing component
+	downloadCompTasks := buildDownloadCompTasks(clusterVersion, topo, m.logger)
 
-	for host, info := range uniqueHosts {
-		var dirs []string
-		for _, dir := range []string{globalOptions.DeployDir, globalOptions.LogDir} {
-			if dir == "" {
-				continue
-			}
+	// tasks which are used to initialize environment
+	envInitTasks := buildEnvInitTasks(topo, &opt, &gOpt, sshConnProps, m.logger)
 
-			dirs = append(dirs, spec.Abs(globalOptions.User, dir))
-		}
-		// the default, relative path of data dir is under deploy dir
-		if strings.HasPrefix(globalOptions.DataDir, "/") {
-			dirs = append(dirs, globalOptions.DataDir)
-		}
+	// tasks which are used to mkdir at remote target host
+	mkdirTasks := buildMkdirTasks(topo, &gOpt, sshConnProps, m.logger)
 
-		t := task.NewBuilder(m.logger).
-			RootSSH(
-				host,
-				info.ssh,
-				opt.User,
-				sshConnProps.Password,
-				sshConnProps.IdentityFile,
-				sshConnProps.IdentityFilePassphrase,
-				gOpt.SSHTimeout,
-				gOpt.OptTimeout,
-			).
-			UserAction(host, globalOptions.User, globalOptions.Group, opt.SkipCreateUser || globalOptions.User == opt.User).
-			EnvInit(host, globalOptions.User, globalOptions.Group).
-			Mkdir(globalOptions.User, host, dirs...).
-			BuildAsStep(fmt.Sprintf("  - Prepare %s:%d", host, info.ssh))
-		envInitTasks = append(envInitTasks, t)
-	}
-
-	// Download missing component
-	downloadCompTasks = buildDownloadCompTasks(clusterVersion, topo, m.logger)
-
-	var deployTasksByHosts = make(map[string]*task.Builder, len(uniqueHosts))
-	// Deploy components to remote
-	topo.IterInstance(func(inst spec.Instance) {
-		deployDir := spec.Abs(globalOptions.User, inst.DeployDir())
-		// data dir would be empty for components which don't need it
-		dataDirs := spec.Abs(globalOptions.User, inst.DataDir())
-		// log dir will always be with values, but might not be used by the component
-		logDir := spec.Abs(globalOptions.User, inst.LogDir())
-		// Deploy component
-		// prepare deployment server
-		deployDirs := []string{
-			deployDir, logDir,
-			filepath.Join(deployDir, "bin"),
-			filepath.Join(deployDir, "conf"),
-			filepath.Join(deployDir, "scripts"),
-		}
-
-		tk, ok := deployTasksByHosts[inst.GetHost()]
-		if ok {
-			tk = tk.CopyComponent(
-				inst.ComponentSource(),
-				inst.ComponentName(),
-				inst.OS(),
-				inst.Arch(),
-				clusterVersion,
-				"", // use default srcPath
-				inst.GetManageHost(),
-				deployDir,
-			)
-			deployTasksByHosts[inst.GetManageHost()] = tk
-			return
-		}
-
-		t := task.NewBuilder(m.logger). // TODO: only support root deploy user
-						RootSSH(
-				inst.GetManageHost(),
-				inst.GetSSHPort(),
-				globalOptions.User,
-				sshConnProps.Password,
-				sshConnProps.IdentityFile,
-				sshConnProps.IdentityFilePassphrase,
-				gOpt.SSHTimeout,
-				gOpt.OptTimeout,
-			).
-			//t := task.NewSimpleUerSSH(m.logger, inst.GetManageHost(), inst.GetSSHPort(), globalOptions.User, 0, 0).
-			Mkdir(globalOptions.User, inst.GetManageHost(), deployDirs...).
-			Mkdir(globalOptions.User, inst.GetManageHost(), dataDirs)
-
-		if deployerInstance, ok := inst.(DeployerInstance); ok {
-			deployerInstance.Deploy(t, "", deployDir, clusterVersion, clusterName, clusterVersion)
-		} else {
-			// copy dependency component if needed
-			t = t.CopyComponent(
-				inst.ComponentSource(),
-				inst.ComponentName(),
-				inst.OS(),
-				inst.Arch(),
-				clusterVersion,
-				"", // use default srcPath
-				inst.GetManageHost(),
-				deployDir,
-			)
-		}
-		// save task by host
-		deployTasksByHosts[inst.GetManageHost()] = t
-	})
-
-	for host, tk := range deployTasksByHosts {
-		deployCompTasks = append(deployCompTasks,
-			tk.BuildAsStep(fmt.Sprintf("  - Copy %s -> %s", "required components", host)),
-		)
-	}
+	// tasks which are used to copy components to remote host
+	deployCompTasks := buildDeployTasks(clusterName, clusterVersion, topo, &gOpt, sshConnProps, m.logger)
 
 	// generates certificate for instance and transfers it to the server
 	//certificateTasks, err := buildCertificateTasks(m, name, topo, metadata.GetBaseMeta(), gOpt, sshProxyProps)
@@ -266,6 +160,7 @@ func (m *Manager) Install(
 			m.logger).
 		ParallelStep("+ Download openGemini components", false, downloadCompTasks...).
 		ParallelStep("+ Initialize target host environments", false, envInitTasks...).
+		ParallelStep("+ Mkdir at target hosts", false, mkdirTasks...).
 		ParallelStep("+ Deploy openGemini instance", false, deployCompTasks...).
 		//ParallelStep("+ Copy certificate to remote host", gOpt.Force, certificateTasks...).
 		ParallelStep("+ Init instance configs", gOpt.Force, refreshConfigTasks...)

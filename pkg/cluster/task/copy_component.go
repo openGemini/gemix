@@ -18,14 +18,15 @@ import (
 	"fmt"
 
 	"github.com/openGemini/gemix/pkg/cluster/spec"
+	"github.com/openGemini/gemix/pkg/cluster/version"
 	"github.com/pkg/errors"
 )
 
 // CopyComponent is used to copy all files related the specific version a component
 // to the target directory of path
 type CopyComponent struct {
-	component  string // component name like "ts-meta/ts-sql/ts-store/..."
-	srcPkgName string // src package name like "openGemini"
+	component  string // component name like "ts-meta/ts-sql/ts-store/ts-monitor/grafana"
+	srcPkgName string // src package name like "openGemini/grafana"
 	os         string
 	arch       string
 	version    string
@@ -43,9 +44,11 @@ func (c *CopyComponent) Execute(ctx context.Context) error {
 		// rename v1.1.1 to 1.1.1
 		c.version = c.version[1:]
 	}
-
 	// Copy to remote server
 	srcPath := c.srcPath
+	if c.srcPkgName == spec.ComponentGrafana {
+		srcPath = spec.PackageGrafanaPath(c.srcPkgName, version.GrafanaVersion, c.os, c.arch)
+	}
 	if srcPath == "" {
 		srcPath = spec.PackagePath(c.srcPkgName, c.version, c.os, c.arch)
 	}

@@ -19,6 +19,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -34,10 +35,11 @@ import (
 
 // Components names
 const (
-	ComponentTSMeta  = "ts-meta"
-	ComponentTSSql   = "ts-sql"
-	ComponentTSStore = "ts-store"
-	ComponentGrafana = "grafana"
+	ComponentTSMeta    = "ts-meta"
+	ComponentTSSql     = "ts-sql"
+	ComponentTSStore   = "ts-store"
+	ComponentTSMonitor = "ts-monitor"
+	ComponentGrafana   = "grafana"
 )
 
 // Components sources
@@ -115,7 +117,7 @@ type BaseInstance struct {
 
 	Ports    []int
 	Dirs     []string
-	StatusFn func(ctx context.Context, timeout time.Duration, tlsCfg *tls.Config, pdHosts ...string) string
+	StatusFn func(ctx context.Context, timeout time.Duration, tlsCfg *tls.Config, tsMetaHosts ...string) string
 	UptimeFn func(ctx context.Context, timeout time.Duration, tlsCfg *tls.Config) time.Duration
 }
 
@@ -150,6 +152,63 @@ func (i *BaseInstance) InitConfig(ctx context.Context, e ctxt.Executor, opt Glob
 	if _, _, err := e.Execute(ctx, cmd, true); err != nil {
 		return errors.WithMessagef(err, "execute: %s", cmd)
 	}
+	return nil
+}
+
+// setTLSConfig set TLS Config to support enable/disable TLS
+// baseInstance no need to configure TLS
+//
+//lint:ignore U1000 keep this
+func (i *BaseInstance) setTLSConfig(ctx context.Context, enableTLS bool, configs map[string]any, paths meta.DirPaths) (map[string]any, error) {
+	return nil, nil
+}
+
+// TransferLocalConfigFile scp local config file to remote
+// Precondition: the user on remote have permission to access & mkdir of dest files
+func (i *BaseInstance) TransferLocalConfigFile(ctx context.Context, e ctxt.Executor, local, remote string) error {
+	remoteDir := filepath.Dir(remote)
+	// make sure the directory exists
+	cmd := fmt.Sprintf("mkdir -p %s", remoteDir)
+	if _, _, err := e.Execute(ctx, cmd, false); err != nil {
+		return errors.WithMessagef(err, "execute: %s", cmd)
+	}
+
+	if err := e.Transfer(ctx, local, remote, false, 0, false); err != nil {
+		return errors.WithMessagef(err, "transfer from %s to %s failed", local, remote)
+	}
+
+	return nil
+}
+
+// TransferLocalConfigDir scp local config directory to remote
+// Precondition: the user on remote have right to access & mkdir of dest files
+func (i *BaseInstance) TransferLocalConfigDir(ctx context.Context, e ctxt.Executor, local, remote string, filter func(string) bool) error {
+	return i.IteratorLocalConfigDir(ctx, local, filter, func(fname string) error {
+		localPath := path.Join(local, fname)
+		remotePath := path.Join(remote, fname)
+		if err := i.TransferLocalConfigFile(ctx, e, localPath, remotePath); err != nil {
+			return errors.WithMessagef(err, "transfer local config (%s -> %s) failed", localPath, remotePath)
+		}
+		return nil
+	})
+}
+
+// IteratorLocalConfigDir iterators the local dir with filter, then invoke f for each found fileName
+func (i *BaseInstance) IteratorLocalConfigDir(ctx context.Context, local string, filter func(string) bool, f func(string) error) error {
+	files, err := os.ReadDir(local)
+	if err != nil {
+		return errors.WithMessagef(err, "read local directory %s failed", local)
+	}
+
+	for _, file := range files {
+		if filter != nil && !filter(file.Name()) {
+			continue
+		}
+		if err := f(file.Name()); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

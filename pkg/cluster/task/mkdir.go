@@ -36,6 +36,10 @@ func (m *Mkdir) Execute(ctx context.Context) error {
 		panic(ErrNoExecutor)
 	}
 	for _, dir := range m.dirs {
+		if dir == "" {
+			continue
+		}
+
 		if !strings.HasPrefix(dir, "/") {
 			return fmt.Errorf("dir is a relative path: %s", dir)
 		}

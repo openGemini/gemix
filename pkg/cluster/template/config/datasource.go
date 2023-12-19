@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package scripts
+package config
 
 import (
 	"bytes"
@@ -22,21 +22,21 @@ import (
 	"github.com/openGemini/gemix/pkg/utils"
 )
 
-// TSMetaScript represent the data to generate ts-meta config
-type TSMetaScript struct {
-	DeployDir string
-	LogDir    string
+// DatasourceConfig represent the data to generate Datasource config
+type DatasourceConfig struct {
+	ClusterName string
+	URL         string
 }
 
 // ConfigToFile write config content to specific path
-func (c *TSMetaScript) ConfigToFile(file string) error {
-	fp := path.Join("templates", "scripts", "run_ts_meta.sh.tpl")
+func (c *DatasourceConfig) ConfigToFile(file string) error {
+	fp := path.Join("templates", "config", "datasource.yml.tpl")
 	tpl, err := embed.ReadTemplate(fp)
 	if err != nil {
 		return err
 	}
 
-	tmpl, err := template.New("TSMeta").Parse(string(tpl))
+	tmpl, err := template.New("Datasource").Parse(string(tpl))
 	if err != nil {
 		return err
 	}
@@ -46,5 +46,5 @@ func (c *TSMetaScript) ConfigToFile(file string) error {
 		return err
 	}
 
-	return utils.WriteFile(file, content.Bytes(), 0750)
+	return utils.WriteFile(file, content.Bytes(), 0755)
 }

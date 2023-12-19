@@ -113,6 +113,9 @@ func Abs(user, path string) string {
 	// trim whitespaces before joining
 	user = strings.TrimSpace(user)
 	path = strings.TrimSpace(path)
+	if path == "" {
+		return ""
+	}
 	if strings.HasPrefix(path, "~/") {
 		if user == "root" {
 			path = filepath.Join("/root", path[2:])
@@ -153,6 +156,17 @@ func expandRelativePath(user string, topology Topology) {
 		server.DeployDir = Abs(user, server.DeployDir)
 		server.LogDir = Abs(user, server.LogDir)
 		server.DataDir = Abs(user, server.DataDir)
+	}
+
+	for i := range topo.TSMonitorServers {
+		server := topo.TSMonitorServers[i]
+		server.DeployDir = Abs(user, server.DeployDir)
+		server.LogDir = Abs(user, server.LogDir)
+	}
+
+	for i := range topo.Grafanas {
+		server := topo.Grafanas[i]
+		server.DeployDir = Abs(user, server.DeployDir)
 	}
 }
 

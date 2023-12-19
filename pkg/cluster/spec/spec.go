@@ -23,7 +23,7 @@ import (
 
 	"github.com/creasty/defaults"
 	"github.com/openGemini/gemix/pkg/meta"
-	"github.com/openGemini/gemix/utils"
+	"github.com/openGemini/gemix/pkg/utils"
 	"github.com/pkg/errors"
 )
 
@@ -60,25 +60,32 @@ type (
 		//Custom          any                  `yaml:"custom,omitempty" validate:"custom:ignore"`
 	}
 
+	// TSMonitoredOptions represents the monitored configuration
+	TSMonitoredOptions struct {
+		TSMonitorEnabled bool `yaml:"ts_monitor_enabled,omitempty" default:"false"`
+	}
+
 	// ServerConfigs represents the server runtime configuration
 	ServerConfigs struct {
-		TsMeta  map[string]any `yaml:"ts-meta"`
-		TsSql   map[string]any `yaml:"ts-sql"`
-		TsStore map[string]any `yaml:"ts-store"`
+		TsMeta    map[string]any    `yaml:"ts-meta"`
+		TsSql     map[string]any    `yaml:"ts-sql"`
+		TsStore   map[string]any    `yaml:"ts-store"`
+		TsMonitor map[string]any    `yaml:"ts-monitor"`
+		Grafana   map[string]string `yaml:"grafana"`
 	}
 
 	// Specification represents the specification of topology.yaml
 	Specification struct {
-		GlobalOptions GlobalOptions `yaml:"global,omitempty" validate:"global:editable"`
-		//MonitoredOptions MonitoredOptions `yaml:"monitored,omitempty" validate:"monitored:editable"`
-		ServerConfigs  ServerConfigs  `yaml:"server_configs,omitempty" validate:"server_configs:ignore"`
-		TSMetaServers  []*TSMetaSpec  `yaml:"ts_meta_servers"`
-		TSSqlServers   []*TSSqlSpec   `yaml:"ts_sql_servers"`
-		TSStoreServers []*TSStoreSpec `yaml:"ts_store_servers"`
+		GlobalOptions    GlobalOptions      `yaml:"global,omitempty" validate:"global:editable"`
+		MonitoredOptions TSMonitoredOptions `yaml:"monitored,omitempty" validate:"monitored:editable"`
+		ServerConfigs    ServerConfigs      `yaml:"server_configs,omitempty" validate:"server_configs:ignore"`
+		TSMetaServers    []*TSMetaSpec      `yaml:"ts_meta_servers"`
+		TSSqlServers     []*TSSqlSpec       `yaml:"ts_sql_servers"`
+		TSStoreServers   []*TSStoreSpec     `yaml:"ts_store_servers"`
+		TSMonitorServers []*TSMonitorSpec   `yaml:"ts_monitor_servers,omitempty"`
+		Grafanas         []*GrafanaSpec     `yaml:"grafana_servers,omitempty"`
 		//DashboardServers []*DashboardSpec `yaml:"opengemini_dashboard_servers,omitempty"`
 		//Monitors         []*PrometheusSpec    `yaml:"monitoring_servers"`
-		//Grafanas         []*GrafanaSpec       `yaml:"grafana_servers,omitempty"`
-
 	}
 )
 
@@ -97,14 +104,14 @@ type Topology interface {
 	//TLSConfig(dir string) (*tls.Config, error)
 	//Merge(that Topology) Topology // TODO: for update
 	FillHostArchOrOS(hostArchmap map[string]string, fullType FullHostType) error
-	//GetGrafanaConfig() map[string]string
+	GetGrafanaConfig() map[string]string
 }
 
 type BaseTopo struct {
 	GlobalOptions *GlobalOptions
 	MasterList    []string
 
-	//Grafanas      []*GrafanaSpec
+	Grafanas []*GrafanaSpec
 }
 
 // BaseMeta is the base info of metadata.
@@ -340,7 +347,7 @@ func (s *Specification) BaseTopo() *BaseTopo {
 	return &BaseTopo{
 		GlobalOptions: &s.GlobalOptions,
 		MasterList:    s.GetTSMetaListWithManageHost(),
-		//Grafanas:      s.Grafanas,
+		Grafanas:      s.Grafanas,
 	}
 }
 
@@ -360,11 +367,13 @@ func (s *Specification) ComponentsByStopOrder() (comps []Component) {
 
 // ComponentsByStartOrder return component in the order need to start.
 func (s *Specification) ComponentsByStartOrder() (comps []Component) {
-	// "ts-meta", "ts-store", "ts-sql", "ts-data", "monitor_server??", "grafana"
-	comps = append(comps, &TSMetaComponent{s})
-	comps = append(comps, &TSStoreComponent{s})
-	comps = append(comps, &TSSqlComponent{s})
+	// "ts-meta", "ts-store", "ts-sql", "ts-data", "ts-monitor", "grafana"
+	comps = append(comps, &TSMetaComponent{Topology: s})
+	comps = append(comps, &TSStoreComponent{Topology: s})
+	comps = append(comps, &TSSqlComponent{Topology: s})
 	//comps = append(comps, &TSDataComponent{s})
+	comps = append(comps, &TSMonitorComponent{Topology: s})
+	comps = append(comps, &GrafanaComponent{Topology: s})
 	return
 }
 
@@ -438,6 +447,16 @@ func FillHostArchOrOS(s *Specification, hostArchOrOS map[string]string, fullType
 				server.OS = hostArchOrOS[server.Host]
 			}
 		}
+		for _, server := range s.TSMonitorServers {
+			if server.OS == "" {
+				server.OS = hostArchOrOS[server.Host]
+			}
+		}
+		for _, server := range s.Grafanas {
+			if server.OS == "" {
+				server.OS = hostArchOrOS[server.Host]
+			}
+		}
 	}
 	if fullType == FullArchType {
 		for _, server := range s.TSMetaServers {
@@ -455,12 +474,33 @@ func FillHostArchOrOS(s *Specification, hostArchOrOS map[string]string, fullType
 				server.Arch = hostArchOrOS[server.Host]
 			}
 		}
+		for _, server := range s.TSMonitorServers {
+			if server.Arch == "" {
+				server.Arch = hostArchOrOS[server.Host]
+			}
+		}
+		for _, server := range s.Grafanas {
+			if server.Arch == "" {
+				server.Arch = hostArchOrOS[server.Host]
+			}
+		}
 	}
 	return nil
 }
 
-// PackagePath return the tar bar path
+// PackagePath return the openGemini component tar.gz path
 func PackagePath(comp string, version string, os string, arch string) string {
 	fileName := fmt.Sprintf("%s-%s-%s-%s.tar.gz", comp, version, os, arch)
 	return ProfilePath(OpenGeminiPackageCacheDir, fileName)
+}
+
+// PackageGrafanaPath return the grafana component tar.gz path
+func PackageGrafanaPath(comp string, version string, os string, arch string) string {
+	fileName := fmt.Sprintf("%s-%s.%s-%s.tar.gz", comp, version, os, arch)
+	return ProfilePath(OpenGeminiPackageCacheDir, fileName)
+}
+
+// GetGrafanaConfig returns global grafana configurations
+func (s *Specification) GetGrafanaConfig() map[string]string {
+	return s.ServerConfigs.Grafana
 }

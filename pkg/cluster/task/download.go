@@ -51,6 +51,7 @@ func (d *Downloader) Execute(_ context.Context) error {
 		// TODO: get latest version
 		d.version = "latest"
 	}
+
 	prefix := fmt.Sprintf("  - Download %s:%s (%s/%s)", d.component, d.version, d.os, d.arch)
 	var err error
 	d.teaProgram, err = operator.Download(prefix, d.component, d.os, d.arch, d.version)

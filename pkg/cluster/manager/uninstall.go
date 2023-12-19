@@ -66,7 +66,7 @@ func (m *Manager) UninstallCluster(name string, gOpt operator.Options, destroyOp
 			)
 		}).
 		Func("UninstallCluster", func(ctx context.Context) error {
-			return operator.Destroy(ctx, topo, destroyOpt)
+			return operator.Uninstall(ctx, topo, destroyOpt)
 		}).
 		Build()
 

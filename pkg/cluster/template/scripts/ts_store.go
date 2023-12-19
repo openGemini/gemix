@@ -15,11 +15,11 @@ package scripts
 
 import (
 	"bytes"
-	"os"
 	"path"
 	"text/template"
 
 	"github.com/openGemini/gemix/embed"
+	"github.com/openGemini/gemix/pkg/utils"
 	"github.com/pkg/errors"
 )
 
@@ -47,5 +47,5 @@ func (c *TSStoreScript) ConfigToFile(file string) error {
 		return errors.WithStack(err)
 	}
 
-	return os.WriteFile(file, content.Bytes(), 0750)
+	return utils.WriteFile(file, content.Bytes(), 0750)
 }

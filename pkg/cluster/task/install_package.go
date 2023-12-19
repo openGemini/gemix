@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 
 	"github.com/openGemini/gemix/pkg/cluster/ctxt"
+	"github.com/openGemini/gemix/pkg/cluster/spec"
 	"github.com/pkg/errors"
 )
 
@@ -48,7 +49,13 @@ func (c *InstallPackage) Execute(ctx context.Context) error {
 		return errors.WithMessagef(err, "failed to scp %s to %s:%s", c.srcPath, c.host, dstPath)
 	}
 
-	cmd := fmt.Sprintf(`tar --no-same-owner -zxf %s -C %s --wildcards '*%s' && mv %s/usr/bin/ts-* %s && rm -r %s/usr && rm %s`, dstPath, dstDir, c.component, dstDir, dstDir, dstDir, dstPath)
+	var cmd string
+	switch c.component {
+	case spec.ComponentTSMeta, spec.ComponentTSSql, spec.ComponentTSStore, spec.ComponentTSMonitor:
+		cmd = fmt.Sprintf(`tar --no-same-owner -zxf %s -C %s --wildcards '*%s' && mv %s/usr/bin/ts-* %s && rm -r %s/usr && rm %s`, dstPath, dstDir, c.component, dstDir, dstDir, dstDir, dstPath)
+	default:
+		cmd = fmt.Sprintf(`tar --no-same-owner -zxf %s -C %s && rm %s`, dstPath, dstDir, dstPath)
+	}
 	_, stderr, err := exec.Execute(ctx, cmd, false)
 	if err != nil {
 		return errors.WithMessagef(err, "stderr: %s", string(stderr))
