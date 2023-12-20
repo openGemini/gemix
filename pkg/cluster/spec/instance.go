@@ -131,8 +131,12 @@ func (i *BaseInstance) InitConfig(ctx context.Context, e ctxt.Executor, opt Glob
 	comp := i.ComponentName()
 	host := i.GetHost()
 	port := i.GetPort()
-	sysCfg := filepath.Join(paths.Cache, fmt.Sprintf("%s-%s-%d.service", comp, host, port))
-
+	var sysCfg string
+	if port > 0 {
+		sysCfg = filepath.Join(paths.Cache, fmt.Sprintf("%s-%s-%d.service", comp, host, port))
+	} else {
+		sysCfg = filepath.Join(paths.Cache, fmt.Sprintf("%s-%s.service", comp, host))
+	}
 	resource := MergeResourceControl(opt.ResourceControl, i.ResourceControl())
 	systemCfg := system.NewConfig(comp, user, paths.Deploy).
 		WithMemoryLimit(resource.MemoryLimit).
