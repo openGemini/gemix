@@ -16,6 +16,7 @@ package spec
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -259,7 +260,7 @@ func (i *TSMonitorInstance) InitConfig(ctx context.Context, e ctxt.Executor, clu
 	}
 	spec := i.InstanceSpec.(*TSMonitorSpec)
 
-	cfg := &scripts.TSSqlScript{
+	cfg := &scripts.TSMonitorScript{
 		DeployDir: paths.Deploy,
 		LogDir:    paths.Log,
 	}
@@ -303,4 +304,9 @@ func (i *TSMonitorInstance) SetDefaultConfig(instanceConf map[string]any) map[st
 	//instanceConf["logging.path"] = i.LogDir()
 
 	return instanceConf
+}
+
+// Ready implements Instance interface
+func (i *TSMonitorInstance) Ready(ctx context.Context, e ctxt.Executor, timeout uint64, _ *tls.Config) error {
+	return nil
 }

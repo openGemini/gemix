@@ -56,7 +56,6 @@ func (s *Specification) CountDir(targetHost, dirPrefix string) int {
 		if isSkipField(topoSpec.Field(i)) {
 			continue
 		}
-
 		compSpecs := topoSpec.Field(i)
 		for index := 0; index < compSpecs.Len(); index++ {
 			compSpec := reflect.Indirect(compSpecs.Index(index))

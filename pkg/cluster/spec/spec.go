@@ -178,13 +178,14 @@ func fillCustomDefaults(globalOptions *GlobalOptions, data any) error {
 
 var (
 	globalOptionTypeName  = reflect.TypeOf(GlobalOptions{}).Name()
+	monitorOptionTypeName = reflect.TypeOf(TSMonitoredOptions{}).Name()
 	serverConfigsTypeName = reflect.TypeOf(ServerConfigs{}).Name()
 )
 
 // Skip global/monitored options
 func isSkipField(field reflect.Value) bool {
 	tp := field.Type().Name()
-	return tp == globalOptionTypeName || tp == serverConfigsTypeName
+	return tp == globalOptionTypeName || tp == monitorOptionTypeName || tp == serverConfigsTypeName
 }
 
 func setDefaultDir(parent, role, port string, field reflect.Value) {
