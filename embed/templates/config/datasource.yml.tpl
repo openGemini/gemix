@@ -4,6 +4,7 @@ datasources:
     type: influxdb
     access: proxy
     url: {{.URL}}
+    database: {{.ClusterName}}
     jsonData:
       dbName: {{.ClusterName}}
       httpMode: GET
