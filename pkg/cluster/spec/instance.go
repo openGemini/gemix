@@ -131,12 +131,7 @@ func (i *BaseInstance) InitConfig(ctx context.Context, e ctxt.Executor, opt Glob
 	comp := i.ComponentName()
 	host := i.GetHost()
 	port := i.GetPort()
-	var sysCfg string
-	if port > 0 {
-		sysCfg = filepath.Join(paths.Cache, fmt.Sprintf("%s-%s-%d.service", comp, host, port))
-	} else {
-		sysCfg = filepath.Join(paths.Cache, fmt.Sprintf("%s-%s.service", comp, host))
-	}
+	sysCfg := filepath.Join(paths.Cache, fmt.Sprintf("%s-%s-%d.service", comp, host, port))
 	resource := MergeResourceControl(opt.ResourceControl, i.ResourceControl())
 	systemCfg := system.NewConfig(comp, user, paths.Deploy).
 		WithMemoryLimit(resource.MemoryLimit).
@@ -152,7 +147,13 @@ func (i *BaseInstance) InitConfig(ctx context.Context, e ctxt.Executor, opt Glob
 	if err := e.Transfer(ctx, sysCfg, tgt, false, 0, false); err != nil {
 		return errors.WithMessagef(err, "transfer from %s to %s failed", sysCfg, tgt)
 	}
-	cmd := fmt.Sprintf("mv %s /etc/systemd/system/%s-%d.service", tgt, comp, port)
+	var serviceFile string
+	if port > 0 {
+		serviceFile = fmt.Sprintf("%s-%d.service", comp, port)
+	} else {
+		serviceFile = fmt.Sprintf("%s.service", comp)
+	}
+	cmd := fmt.Sprintf("mv %s /etc/systemd/system/%s", tgt, serviceFile)
 	if _, _, err := e.Execute(ctx, cmd, true); err != nil {
 		return errors.WithMessagef(err, "execute: %s", cmd)
 	}
