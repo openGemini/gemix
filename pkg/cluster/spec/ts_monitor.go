@@ -94,20 +94,24 @@ func (c *TSMonitorComponent) Role() string {
 
 // Instances implements Component interface.
 func (c *TSMonitorComponent) Instances() []Instance {
+	if !c.Topology.MonitoredOptions.TSMonitorEnabled {
+		return nil
+	}
+
 	instanceSet := set.NewStringSet()
 
 	ins := make([]Instance, 0, len(c.Topology.TSMetaServers)+len(c.Topology.TSSqlServers)+len(c.Topology.TSStoreServers))
-	for _, s := range c.Topology.TSMetaServers {
+	for _, s := range c.Topology.TSStoreServers {
 		if instanceSet.Exist(s.Host) {
 			continue
 		}
 		ms := &TSMonitorSpec{
 			OS:        s.OS,
 			Arch:      s.Arch,
-			DeployDir: s.DeployDir,
-			LogDir:    s.LogDir,
+			DeployDir: c.Topology.MonitoredOptions.DeployDir,
+			LogDir:    c.Topology.MonitoredOptions.LogDir,
 			MonitorProcess: map[string]struct{}{
-				"ts-meta": {},
+				"ts-store": {},
 			},
 			Config: map[string]any{
 				"monitor.host":           s.Host,
@@ -136,11 +140,12 @@ func (c *TSMonitorComponent) Instances() []Instance {
 			topo: c.Topology,
 		})
 	}
-	for _, s := range c.Topology.TSStoreServers {
+
+	for _, s := range c.Topology.TSMetaServers {
 		if instanceSet.Exist(s.Host) {
 			for _, mo := range ins {
 				if mo.GetHost() == s.Host {
-					mo.(*TSMonitorInstance).BaseInstance.InstanceSpec.(*TSMonitorSpec).MonitorProcess["ts-store"] = struct{}{}
+					mo.(*TSMonitorInstance).BaseInstance.InstanceSpec.(*TSMonitorSpec).MonitorProcess["ts-meta"] = struct{}{}
 				}
 			}
 			continue
@@ -148,8 +153,16 @@ func (c *TSMonitorComponent) Instances() []Instance {
 		ms := &TSMonitorSpec{
 			OS:        s.OS,
 			Arch:      s.Arch,
-			DeployDir: s.DeployDir,
-			LogDir:    s.LogDir,
+			DeployDir: c.Topology.MonitoredOptions.DeployDir,
+			LogDir:    c.Topology.MonitoredOptions.LogDir,
+			MonitorProcess: map[string]struct{}{
+				"ts-meta": {},
+			},
+			Config: map[string]any{
+				"monitor.host":           s.Host,
+				"monitor.error-log-path": s.LogDir,
+				"logging.path":           s.LogDir,
+			},
 		}
 		instanceSet.Insert(s.Host)
 		ins = append(ins, &TSMonitorInstance{
@@ -182,8 +195,11 @@ func (c *TSMonitorComponent) Instances() []Instance {
 		ms := &TSMonitorSpec{
 			OS:        s.OS,
 			Arch:      s.Arch,
-			DeployDir: s.DeployDir,
-			LogDir:    s.LogDir,
+			DeployDir: c.Topology.MonitoredOptions.DeployDir,
+			LogDir:    c.Topology.MonitoredOptions.LogDir,
+			MonitorProcess: map[string]struct{}{
+				"ts-sql": {},
+			},
 			Config: map[string]any{
 				"monitor.host":           s.Host,
 				"monitor.error-log-path": s.LogDir,
@@ -287,7 +303,7 @@ func (i *TSMonitorInstance) InitConfig(ctx context.Context, e ctxt.Executor, clu
 	//	return errors.WithStack(err)
 	//}
 
-	configs := i.SetDefaultConfig(spec.Config)
+	configs := i.SetDefaultConfig(spec.Config, clusterName)
 
 	if err = i.MergeServerConfig(ctx, e, globalConfig, configs, paths); err != nil {
 		return errors.WithStack(err)
@@ -296,13 +312,17 @@ func (i *TSMonitorInstance) InitConfig(ctx context.Context, e ctxt.Executor, clu
 	return checkConfig(ctx, e, i.ComponentName(), i.ComponentSource(), clusterVersion, i.OS(), i.Arch(), i.ComponentName()+".toml", paths, nil)
 }
 
-func (i *TSMonitorInstance) SetDefaultConfig(instanceConf map[string]any) map[string]any {
-	//if instanceConf == nil {
-	//	instanceConf = make(map[string]any, 20)
-	//}
+func (i *TSMonitorInstance) SetDefaultConfig(instanceConf map[string]any, clusterName string) map[string]any {
+	if instanceConf == nil {
+		instanceConf = make(map[string]any, 20)
+	}
 
-	//instanceConf["logging.path"] = i.LogDir()
+	// TODO: report to monitor server address
+	if len(i.topo.TSSqlServers) > 0 {
+		instanceConf["report.address"] = fmt.Sprintf("%s:%d", i.topo.TSSqlServers[0].Host, i.topo.TSSqlServers[0].Port)
+	}
 
+	instanceConf["report.database"] = strings.Replace(clusterName, "-", "_", -1)
 	return instanceConf
 }
 

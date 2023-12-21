@@ -27,6 +27,7 @@ import (
 	"github.com/openGemini/gemix/pkg/cluster/template/scripts"
 	"github.com/openGemini/gemix/pkg/cluster/version"
 	"github.com/openGemini/gemix/pkg/meta"
+	"github.com/openGemini/gemix/pkg/utils"
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
 )
@@ -237,8 +238,12 @@ func (i *GrafanaInstance) InitConfig(
 	fp = filepath.Join(paths.Cache, fmt.Sprintf("datasource_%s.yml", i.GetHost()))
 	datasourceCfg := &config.DatasourceConfig{
 		ClusterName: clusterName,
-		//URL:         fmt.Sprintf("http://%s", utils.JoinHostPort(monitors[0].Host, monitors[0].Port)), // TODO: proxy URL
 	}
+	if len(i.topo.(*Specification).TSSqlServers) > 0 {
+		sql0 := i.topo.(*Specification).TSSqlServers[0]
+		datasourceCfg.URL = fmt.Sprintf("http://%s", utils.JoinHostPort(sql0.Host, sql0.Port)) // TODO: monitor server address
+	}
+
 	if err = datasourceCfg.ConfigToFile(fp); err != nil {
 		return errors.WithStack(err)
 	}
