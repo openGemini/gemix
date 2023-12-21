@@ -62,7 +62,9 @@ type (
 
 	// TSMonitoredOptions represents the monitored configuration
 	TSMonitoredOptions struct {
-		TSMonitorEnabled bool `yaml:"ts_monitor_enabled,omitempty" default:"false"`
+		TSMonitorEnabled bool   `yaml:"ts_monitor_enabled,omitempty" default:"false"`
+		DeployDir        string `yaml:"deploy_dir,omitempty"`
+		LogDir           string `yaml:"log_dir,omitempty"`
 	}
 
 	// ServerConfigs represents the server runtime configuration

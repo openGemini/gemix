@@ -138,6 +138,9 @@ func expandRelativePath(user string, topology Topology) {
 	topo.GlobalOptions.DeployDir = Abs(user, topo.GlobalOptions.DeployDir)
 	topo.GlobalOptions.LogDir = Abs(user, topo.GlobalOptions.LogDir)
 
+	topo.MonitoredOptions.DeployDir = Abs(user, topo.MonitoredOptions.DeployDir)
+	topo.MonitoredOptions.LogDir = Abs(user, topo.MonitoredOptions.LogDir)
+
 	for i := range topo.TSMetaServers {
 		server := topo.TSMetaServers[i]
 		server.DeployDir = Abs(user, server.DeployDir)
@@ -167,6 +170,7 @@ func expandRelativePath(user string, topology Topology) {
 	for i := range topo.Grafanas {
 		server := topo.Grafanas[i]
 		server.DeployDir = Abs(user, server.DeployDir)
+		server.DashboardDir = Abs(user, server.DashboardDir)
 	}
 }
 
