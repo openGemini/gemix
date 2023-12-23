@@ -22,7 +22,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// stopCmd2 represents the stop command
+//lint:ignore U1000 keep this
 var stopCmd2 = &cobra.Command{
 	Use:   "stop2",
 	Short: "stop cluster",
