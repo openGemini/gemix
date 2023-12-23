@@ -15,8 +15,6 @@
 package cmd
 
 import (
-	"time"
-
 	"github.com/openGemini/gemix/cmd/cluster"
 	"github.com/spf13/cobra"
 )
@@ -27,36 +25,36 @@ var RootCmd = &cobra.Command{
 	Short: "One-click deployment and upgrade tool for openGemini",
 	Long: `Gemix is a command-line component management tool that can help to download and install
 	openGemini platform components to the local system. You can run a specific version via
-	"gemix install <componet>[:version]". If no version number is specified, the latest version installed
+	"gemix install <component>[:version]". If no version number is specified, the latest version installed
 	locally will be used. If the specified component does not have any version installed locally,
 	the latest stable version will be downloaded from the repository.`,
+	SilenceErrors:      true,
+	SilenceUsage:       true,
+	DisableFlagParsing: true,
+	Args: func(cmd *cobra.Command, args []string) error {
+		// Support `gemix <component>`
+		return nil
+	},
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		return nil
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return cmd.Help()
+		}
+		switch args[0] {
+		case "--help", "-h":
+			return cmd.Help()
+		case "--version", "-v":
+			versionCmd.Run(cmd, nil)
+			return nil
+		default:
+			return cmd.Help()
+		}
+	},
 }
 
 func Execute() {
 	RootCmd.AddCommand(cluster.ClusterCmd)
 	cluster.Execute()
-}
-
-var (
-	Version   string
-	Commit    string
-	Branch    string
-	BuildTime string
-)
-
-func init() {
-	// If commit, branch, or build time are not set, make that clear.
-	if Version == "" {
-		Version = "unknown"
-	}
-	if Commit == "" {
-		Commit = "unknown"
-	}
-	if Branch == "" {
-		Branch = "unknown"
-	}
-
-	if BuildTime == "" {
-		BuildTime = time.Now().UTC().String()
-	}
 }

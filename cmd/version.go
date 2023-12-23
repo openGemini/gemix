@@ -20,11 +20,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	Version   string
+	Commit    string
+	Branch    string
+	BuildTime string
+)
+
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "gemix version",
-	Long:  `Display the version number of the management deployment tool gemix.`,
+	Short: "Print the version of gemix",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("version: %s, branch: %s, commit: %s, build time: %s\n", Version, Branch, Commit, BuildTime)
 	},
@@ -32,4 +38,5 @@ var versionCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(versionCmd)
+	RootCmd.Flags().BoolP("version", "v", false, "Print the version of gemix")
 }

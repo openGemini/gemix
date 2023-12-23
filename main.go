@@ -15,9 +15,39 @@
 package main
 
 import (
+	"time"
+
 	"github.com/openGemini/gemix/cmd"
 )
 
+var (
+	Version   string
+	Commit    string
+	Branch    string
+	BuildTime string
+)
+
+func init() {
+	// If commit, branch, or build time are not set, make that clear.
+	if Version == "" {
+		Version = "unknown"
+	}
+	if Commit == "" {
+		Commit = "unknown"
+	}
+	if Branch == "" {
+		Branch = "unknown"
+	}
+
+	if BuildTime == "" {
+		BuildTime = time.Now().UTC().String()
+	}
+}
+
 func main() {
+	cmd.Version = Version
+	cmd.Commit = Commit
+	cmd.Branch = Branch
+	cmd.BuildTime = BuildTime
 	cmd.Execute()
 }
