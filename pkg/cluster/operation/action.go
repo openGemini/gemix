@@ -224,7 +224,7 @@ func StartComponent(ctx context.Context, instances []spec.Instance, options Opti
 
 	logger := ctx.Value(logprinter.ContextKeyLogger).(*logprinter.Logger)
 	name := instances[0].ComponentName()
-	logger.Infof(fmt.Sprintf("Starting component %s", name))
+	logger.Infof("Starting component %s", name)
 
 	errg, _ := errgroup.WithContext(ctx)
 	for _, ins := range instances {
