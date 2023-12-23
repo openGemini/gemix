@@ -22,7 +22,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// uninstallCmd represents the uninstall command
+//lint:ignore U1000 keep this
 var uninstallCmd = &cobra.Command{
 	Use:   "uninstall2",
 	Short: "uninstall cluster",

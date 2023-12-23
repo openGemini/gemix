@@ -22,7 +22,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// startCmd represents the start command
+//lint:ignore U1000 keep this
 var startCmd2 = &cobra.Command{
 	Use:   "start2",
 	Short: "Start an openGemini cluster",

@@ -24,6 +24,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+//lint:ignore U1000 keep this
 func installCmd2() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "install2",

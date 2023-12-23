@@ -1,49 +1,45 @@
-# Gemix
+[![LICENSE](https://img.shields.io/github/license/openGemini/gemix.svg)](https://github.com/openGemini/gemix/blob/master/LICENSE)
+[![Language](https://img.shields.io/badge/Language-Go-blue.svg)](https://golang.org/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/openGemini/gemix)](https://goreportcard.com/badge/github.com/openGemini/gemix)
+[![Coverage Status](https://codecov.io/gh/openGemini/gemix/branch/master/graph/badge.svg)](https://codecov.io/gh/openGemini/gemix/)
 
-Cluster deployment and upgrade tool.
+# What is gemix
 
-## Build
+`gemix` is a tool to download and install [openGemini](https://github.com/openGemini/openGemini) components.
 
-```bash
-git clone git@github.com:openGemini/openGemini-UP.git
+## Documentation
 
-cd openGemini-UP
+- [English](https://docs.opengemini.org/guide/reference/gemix/gemix_documentation_guide.html)
+- [简体中文](https://docs.opengemini.org/zh/guide/reference/gemix/gemix_documentation_guide)
 
-go mod tidy
+## Installation
 
-go build
+```sh
+go install github.com/openGemini/gemix@latest
 ```
 
-## Commands
+## Quick start
 
-The following table describes some commonly used basic commands.
+### Run playground (TODO)
 
-| command | description | parameter | example |
-| --- | --- | --- | --- |
-| `version` | display version number of gemix | no para | `./gemix version` |
-| `list` | display the available components of gemix | no para | `./gemix list` |
-| `cluster` | deploying and managing openGemini clusters                   | have subcommand |                           |
+```sh
+gemix playground
+```
 
-The following table describes the subcommands of the `cluster` command.
+### Deploy cluster
 
-| command    | description | parameter                                                             | example                                                                                                                           |
-|------------| --- |-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| `install`  | install an openGemini cluster | cluser-name version topology.yml --user username<br />--password | `./gemix cluster install2 gemini-cluster v1.1.0 ./topology.example.yaml --skip-create-user --user root -p`                        |
-| `start`    | start an openGemini cluster and check the running status after startup | cluster-name                            | `./gemix cluster start gemini-cluster `                                                  |
-| `stop`     | stop an openGemini cluster                                   | --name                                                                | `./gemix cluster stop --name gemini-cluster`                                                                                      |
-| `uninstall` | uninstall an openGemini cluster which means clearing data    | --name                                                                | `./gemix cluster uninstall --name gemini-cluster`                                                                                 |
-| `status`   | Check the running status of the openGemini cluster, including port occupancy, disk capacity, etc | --name                                                                | `./gemix cluster status --name gemini-cluster`                                                                                    |
-| `upgrade`  | upgrade an openGemini cluster to the specified version and uninstall the old one | --name<br />--version                                                 | `./gemix cluster upgrade --name gemini-cluster --version v1.0.1`                                                                  |
+```sh
+gemix cluster insall opengemini_demo v1.1.1 ./topology.yaml --skip-create-user -p
+```
 
-## topology.example.yaml
+## Usage
 
-The `topology.example.yaml` is written by the user and contains the necessary information for deploying the openGemini cluster. You can modify the content of the file according to the template.
+After installing `gemix`, you can use it to install binaries of openGemini components and create clusters.
 
-The meaning of each part is as follows:
+## Contributing to gemix
 
-* `global`: Default values for some options. These options are mandatory.
-* `ts-meta`:  Deployment information for `ts-meta`, users can modify some options in `openGemini.conf` here.
-* `ts-sql`: Deployment information for `ts-sql`, users can modify some options in `openGemini.conf` here.
-* `ts-store`: Deployment information for `ts-store`, users can modify some options in `openGemini.conf` here.
+Contributions of code, tests, docs, and bug reports are welcome! To get started, take a look at our [open issues](https://github.com/openGemini/gemix/issues).
 
-[Go to see the example](./embed/examples/cluster/topology.example.yaml)
+## License
+
+[![LICENSE](https://img.shields.io/github/license/openGemini/gemix.svg)](https://github.com/openGemini/gemix/blob/master/LICENSE)
