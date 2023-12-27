@@ -30,7 +30,7 @@ func NewSpinnerProgram(prefix string) *tea.Program {
 		prefix: prefix,
 	}
 	m.resetSpinner()
-	return tea.NewProgram(m)
+	return tea.NewProgram(&m)
 }
 
 type spinnerModel struct {
@@ -41,11 +41,11 @@ type spinnerModel struct {
 	err      error
 }
 
-func (m spinnerModel) Init() tea.Cmd {
+func (m *spinnerModel) Init() tea.Cmd {
 	return m.spinner.Tick
 }
 
-func (m spinnerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *spinnerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -75,16 +75,16 @@ func (m spinnerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *spinnerModel) resetSpinner() {
 	m.spinner = spinner.New()
 	m.spinner.Style = spinnerStyle
-	m.spinner.Spinner = spinner.Line
+	m.spinner.Spinner = spinner.Dot
 }
 
-func (m spinnerModel) View() (s string) {
+func (m *spinnerModel) View() (s string) {
 	if m.err != nil {
-		s += fmt.Sprintf("\n %s %s %s\n\n", m.prefix, "...", errorStyle(m.err.Error()))
+		s += fmt.Sprintf("%s %s %s\n", m.prefix, "...", errorStyle(m.err.Error()))
 	} else if m.finished {
-		s += fmt.Sprintf("\n %s %s %s\n\n", m.prefix, "...", greenStyle("Done"))
+		s += fmt.Sprintf("%s %s %s\n", m.prefix, "...", greenStyle("Done"))
 	} else {
-		s += fmt.Sprintf("\n %s %s %s\n\n", m.prefix, m.spinner.View(), textStyle("Doing..."))
+		s += fmt.Sprintf("%s %s %s\n", m.prefix, m.spinner.View(), textStyle("Doing..."))
 	}
 	return
 }
