@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	tea "github.com/charmbracelet/bubbletea"
 	operator "github.com/openGemini/gemix/pkg/cluster/operation"
 	"github.com/pkg/errors"
 )
@@ -30,8 +29,6 @@ type Downloader struct {
 	os        string
 	arch      string
 	version   string
-
-	teaProgram *tea.Program
 }
 
 // NewDownloader create a Downloader instance.
@@ -53,15 +50,8 @@ func (d *Downloader) Execute(_ context.Context) error {
 	}
 
 	prefix := fmt.Sprintf("  - Download %s:%s (%s/%s)", d.component, d.version, d.os, d.arch)
-	var err error
-	d.teaProgram, err = operator.Download(prefix, d.component, d.os, d.arch, d.version)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	if d.teaProgram == nil {
-		return nil
-	}
-	_, err = d.teaProgram.Run()
+
+	err := operator.Download(prefix, d.component, d.os, d.arch, d.version)
 	return errors.WithStack(err)
 }
 

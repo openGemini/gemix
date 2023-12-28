@@ -36,25 +36,21 @@ type progressWriter struct {
 	file       *os.File
 	reader     io.ReadCloser
 	onProgress func(*tea.Program, float64)
-
-	teaProgram *tea.Program
 }
 
-func (pw *progressWriter) Start() {
+func (pw *progressWriter) Start() error {
 	// TeeReader calls pw.Write() each time a new response is received
 	_, err := io.Copy(pw.file, io.TeeReader(pw.reader, pw))
 	if err != nil {
-		pw.teaProgram.Send(ErrMsg{Err: err})
+		return errors.WithStack(err)
 	}
 	pw.file.Close()   // nolint:errcheck
 	pw.reader.Close() // nolint:errcheck
+	return nil
 }
 
 func (pw *progressWriter) Write(p []byte) (int, error) {
 	pw.downloaded += len(p)
-	if pw.total > 0 && pw.onProgress != nil {
-		pw.onProgress(pw.teaProgram, float64(pw.downloaded)/float64(pw.total))
-	}
 	return len(p), nil
 }
 
@@ -89,44 +85,28 @@ func getResponse(link string) (*http.Response, error) {
 	return resp, nil
 }
 
-func NewDownloadProgram(prefix, pkgLink string, pkgPath string) (*tea.Program, error) {
+func NewDownloadProgram(prefix, pkgLink string, pkgPath string) error {
 	resp, err := getResponse(pkgLink)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 	//defer resp.Body.Close()
 	if resp.ContentLength <= 0 {
-		return nil, errors.WithMessage(err, "can't parse content length, aborting download")
+		return errors.WithMessage(err, "can't parse content length, aborting download")
 	}
 
 	file, err := os.Create(pkgPath)
 	if err != nil {
-		return nil, errors.WithMessage(err, "could not create file")
+		return errors.WithMessage(err, "could not create file")
 	}
 
 	pw := &progressWriter{
-		total:  int(resp.ContentLength),
-		file:   file,
-		reader: resp.Body,
-		onProgress: func(p *tea.Program, ratio float64) {
-			p.Send(progressMsg(ratio))
-		},
+		total:      int(resp.ContentLength),
+		file:       file,
+		reader:     resp.Body,
+		onProgress: func(p *tea.Program, ratio float64) {},
 	}
-
-	m := downloadSpinnerModel{
-		pw: pw,
-		spinnerModel: spinnerModel{
-			prefix: prefix,
-		},
-	}
-	m.resetSpinner()
-
-	// StartDownloadPkg Bubble Tea
-	teaProgram := tea.NewProgram(m)
-	pw.teaProgram = teaProgram
 
 	// StartDownloadPkg the download
-	go pw.Start()
-
-	return teaProgram, nil
+	return pw.Start()
 }

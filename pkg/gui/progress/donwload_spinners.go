@@ -23,6 +23,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+//lint:ignore U1000 keep this
 type downloadSpinnerModel struct {
 	spinnerModel
 
@@ -31,11 +32,13 @@ type downloadSpinnerModel struct {
 	percent float64 // 0 - 1.0
 }
 
-func (m downloadSpinnerModel) Init() tea.Cmd {
+//lint:ignore U1000 keep this
+func (m *downloadSpinnerModel) Init() tea.Cmd {
 	return m.spinner.Tick
 }
 
-func (m downloadSpinnerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+//lint:ignore U1000 keep this
+func (m *downloadSpinnerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -66,19 +69,21 @@ func (m downloadSpinnerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+//lint:ignore U1000 keep this
 func (m *downloadSpinnerModel) resetSpinner() {
 	m.spinner = spinner.New()
 	m.spinner.Style = spinnerStyle
-	m.spinner.Spinner = spinner.Points
+	m.spinner.Spinner = spinner.Dot
 }
 
-func (m downloadSpinnerModel) View() (s string) {
+//lint:ignore U1000 keep this
+func (m *downloadSpinnerModel) View() (s string) {
 	if m.err != nil {
-		s += fmt.Sprintf("\n%s %s %s\n\n", m.prefix, "...", errorStyle(m.err.Error()))
+		s += fmt.Sprintf("\n%s %s %s\n", m.prefix, "...", errorStyle(m.err.Error()))
 	} else if m.percent >= 1.0 {
-		s += fmt.Sprintf("\n%s %s %s\n\n", m.prefix, "...", greenStyle("Done"))
+		s += fmt.Sprintf("\n%s %s %s\n", m.prefix, "...", greenStyle("Done"))
 	} else {
-		s += fmt.Sprintf("\n%s %s %.0f%s %s\n\n", m.prefix, m.spinner.View(), m.percent*100, "%", textStyle("Downloading..."))
+		s += fmt.Sprintf("\n%s %s %.0f%s %s\n", m.prefix, m.spinner.View(), m.percent*100, "%", textStyle("Downloading..."))
 	}
 	return
 }

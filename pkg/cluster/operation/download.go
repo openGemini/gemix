@@ -19,30 +19,29 @@ import (
 	"os"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/openGemini/gemix/pkg/cluster/spec"
 	ver "github.com/openGemini/gemix/pkg/cluster/version"
 	"github.com/openGemini/gemix/pkg/gui/progress"
+	"github.com/openGemini/gemix/pkg/repository"
 	utils2 "github.com/openGemini/gemix/pkg/utils"
-	"github.com/openGemini/gemix/utils"
 	"github.com/pkg/errors"
 )
 
 // Download downloads the specific version of a component from the mirror repository,
 // there is nothing to do if the specified version exists.
-func Download(prefix, component, nodeOS, arch, version string) (*tea.Program, error) {
+func Download(prefix, component, nodeOS, arch, version string) error {
 	if component == "" {
-		return nil, errors.New("component name is not specified")
+		return errors.New("component name is not specified")
 	}
 	if version == "" {
-		return nil, errors.Errorf("version is not specified for component '%s'", component)
+		return errors.Errorf("version is not specified for component '%s'", component)
 	}
 	if strings.HasPrefix(version, "v") || strings.HasPrefix(version, "V") {
 		version = version[1:]
 	}
 
 	fileName := fmt.Sprintf("%s-%s-%s-%s.tar.gz", component, version, nodeOS, arch)
-	componentUrl := strings.Join([]string{utils.DownloadWeb, "v" + version, fileName}, "/")
+	componentUrl := strings.Join([]string{repository.GetRepo(), "v" + version, fileName}, "/")
 
 	if component == spec.ComponentGrafana {
 		// FIXME: download from opengemini.org
@@ -52,7 +51,7 @@ func Download(prefix, component, nodeOS, arch, version string) (*tea.Program, er
 
 	srcPath := spec.ProfilePath(spec.OpenGeminiPackageCacheDir, fileName)
 	if err := os.MkdirAll(spec.ProfilePath(spec.OpenGeminiPackageCacheDir), 0750); err != nil {
-		return nil, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 
 	//progress.StartDownload([]string{fileName})
@@ -64,12 +63,12 @@ func Download(prefix, component, nodeOS, arch, version string) (*tea.Program, er
 
 	// Download from repository if not exists
 	if utils2.IsNotExist(srcPath) {
-		p, err := progress.NewDownloadProgram(prefix, componentUrl, srcPath)
+		err := progress.NewDownloadProgram(prefix, componentUrl, srcPath)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return errors.WithStack(err)
 		}
-		return p, nil
+		return nil
 	}
 	// component is already downloaded
-	return nil, nil
+	return nil
 }
