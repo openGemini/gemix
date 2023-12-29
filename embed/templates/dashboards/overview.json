@@ -1,5 +1,5 @@
 {
-      "__inputs": [
+  "__inputs": [
     {
       "name": "DS_OPENGEMINI_TEST",
       "label": "test-cluster",
@@ -49,7 +49,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 1,
+  "id": null,
   "iteration": 1684308987126,
   "links": [],
   "panels": [
