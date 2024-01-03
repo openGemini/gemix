@@ -213,5 +213,11 @@ func (i *TSMetaInstance) SetDefaultConfig(instanceConf map[string]any) map[strin
 	}
 	instanceConf["gossip.members"] = metaGossipAddrs
 
+	// monitor
+	if i.topo.MonitoredOptions.TSMonitorEnabled {
+		instanceConf["monitor.pushers"] = "file"
+		instanceConf["monitor.store-enabled"] = true
+		instanceConf["monitor.store-path"] = filepath.Join(tsMetaSpec.LogDir, "metric", "meta-metric.data")
+	}
 	return instanceConf
 }

@@ -212,7 +212,7 @@ func (i *TSStoreInstance) SetDefaultConfig(instanceConf map[string]any) map[stri
 
 	instanceConf["gossip.bind-address"] = i.Host
 	instanceConf["gossip.store-bind-port"] = tsStoreSpec.GossipPort
-	instanceConf["gossip.meta-bind-port"] = tsStoreSpec.GossipPort - 1 // just for ts-store compatibility
+	instanceConf["gossip.meta-bind-port"] = tsStoreSpec.GossipPort - 1 // just for ts-meta compatibility
 
 	var metaGossipAddrs []string
 	for _, metaSpec := range i.topo.TSMetaServers {
@@ -220,5 +220,11 @@ func (i *TSStoreInstance) SetDefaultConfig(instanceConf map[string]any) map[stri
 	}
 	instanceConf["gossip.members"] = metaGossipAddrs
 
+	// monitor
+	if i.topo.MonitoredOptions.TSMonitorEnabled {
+		instanceConf["monitor.pushers"] = "file"
+		instanceConf["monitor.store-enabled"] = true
+		instanceConf["monitor.store-path"] = filepath.Join(tsStoreSpec.LogDir, "metric", "store-metric.data")
+	}
 	return instanceConf
 }
