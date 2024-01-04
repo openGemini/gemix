@@ -199,5 +199,11 @@ func (i *TSSqlInstance) SetDefaultConfig(instanceConf map[string]any) map[string
 	instanceConf["http.flight-enabled"] = false // enabled at ts-data
 	instanceConf["logging.path"] = tsSqlSpec.LogDir
 
+	// monitor
+	if i.topo.MonitoredOptions.TSMonitorEnabled {
+		instanceConf["monitor.pushers"] = "file"
+		instanceConf["monitor.store-enabled"] = true
+		instanceConf["monitor.store-path"] = filepath.Join(tsSqlSpec.LogDir, "metric", "sql-metric.data")
+	}
 	return instanceConf
 }

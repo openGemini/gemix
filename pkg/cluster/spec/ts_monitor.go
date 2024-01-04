@@ -317,12 +317,36 @@ func (i *TSMonitorInstance) SetDefaultConfig(instanceConf map[string]any, cluste
 		instanceConf = make(map[string]any, 20)
 	}
 
+	if !i.topo.MonitoredOptions.TSMonitorEnabled {
+		return instanceConf
+	}
+
+	// monitor
+	for _, server := range i.topo.TSMetaServers {
+		if i.Host == server.Host {
+			instanceConf["monitor.metric-path"] = filepath.Join(server.LogDir, "metric")
+			break
+		}
+	}
+	for _, server := range i.topo.TSStoreServers {
+		if i.Host == server.Host {
+			instanceConf["monitor.metric-path"] = filepath.Join(server.LogDir, "metric")
+			break
+		}
+	}
+	for _, server := range i.topo.TSStoreServers {
+		if i.Host == server.Host {
+			instanceConf["monitor.metric-path"] = filepath.Join(server.LogDir, "metric")
+			break
+		}
+	}
+
+	instanceConf["report.database"] = strings.Replace(clusterName, "-", "_", -1)
 	// TODO: report to monitor server address
 	if len(i.topo.TSSqlServers) > 0 {
 		instanceConf["report.address"] = fmt.Sprintf("%s:%d", i.topo.TSSqlServers[0].Host, i.topo.TSSqlServers[0].Port)
 	}
 
-	instanceConf["report.database"] = strings.Replace(clusterName, "-", "_", -1)
 	return instanceConf
 }
 
