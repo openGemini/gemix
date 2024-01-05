@@ -203,7 +203,7 @@ func setDefaultDir(parent, role, port string, field reflect.Value) {
 func getPort(v reflect.Value) string {
 	for i := 0; i < v.NumField(); i++ {
 		switch v.Type().Field(i).Name {
-		case "Port", "ClientPort":
+		case "Port", "ClientPort", "SelectPort":
 			return fmt.Sprintf("%d", v.Field(i).Int())
 		}
 	}
