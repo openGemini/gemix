@@ -48,22 +48,22 @@ func Download(prefix, component, nodeOS, arch, version string) error {
 		fileName = fmt.Sprintf("%s-%s.%s-%s.tar.gz", component, ver.GrafanaVersion, nodeOS, arch)
 		componentUrl = strings.Join([]string{"https://dl.grafana.com/oss/release", fileName}, "/")
 	}
-
-	srcPath := spec.ProfilePath(spec.OpenGeminiPackageCacheDir, fileName)
+	dstPath := spec.ProfilePath(spec.OpenGeminiPackageCacheDir, fileName)
 	if err := os.MkdirAll(spec.ProfilePath(spec.OpenGeminiPackageCacheDir), 0750); err != nil {
 		return errors.WithStack(err)
 	}
 
-	//progress.StartDownload([]string{fileName})
-
-	//lint:ignore SA9003 TODO: verify component sha256
-	if utils2.IsExist(srcPath) {
-		//os.Remove(srcPath)
+	if utils2.IsExist(dstPath) {
+		if component == spec.ComponentOpenGemini {
+			if err := repository.VerifyComponent(version, dstPath); err != nil {
+				_ = os.Remove(dstPath) // nolint
+			}
+		}
 	}
 
 	// Download from repository if not exists
-	if utils2.IsNotExist(srcPath) {
-		err := progress.NewDownloadProgram(prefix, componentUrl, srcPath)
+	if utils2.IsNotExist(dstPath) {
+		err := progress.NewDownloadProgram(prefix, componentUrl, dstPath)
 		if err != nil {
 			return errors.WithStack(err)
 		}
