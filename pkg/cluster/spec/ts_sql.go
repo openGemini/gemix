@@ -189,12 +189,7 @@ func (i *TSSqlInstance) SetDefaultConfig(instanceConf map[string]any) map[string
 	}
 	instanceConf["common.meta-join"] = metaPeerAddrs
 
-	var tsSqlSpec *TSSqlSpec
-	for _, sqlSpec := range i.topo.TSSqlServers {
-		if i.Host == sqlSpec.Host {
-			tsSqlSpec = sqlSpec
-		}
-	}
+	var tsSqlSpec = i.InstanceSpec.(*TSSqlSpec)
 	instanceConf["http.bind-address"] = utils.JoinHostPort(i.Host, tsSqlSpec.Port)
 	instanceConf["http.flight-enabled"] = false // enabled at ts-data
 	instanceConf["logging.path"] = tsSqlSpec.LogDir

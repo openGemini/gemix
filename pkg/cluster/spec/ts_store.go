@@ -196,17 +196,11 @@ func (i *TSStoreInstance) SetDefaultConfig(instanceConf map[string]any) map[stri
 	}
 	instanceConf["common.meta-join"] = metaPeerAddrs
 
-	var tsStoreSpec *TSStoreSpec
-	for _, storeSpec := range i.topo.TSStoreServers {
-		if i.Host == storeSpec.Host && i.Port == storeSpec.SelectPort {
-			tsStoreSpec = storeSpec
-		}
-	}
+	var tsStoreSpec = i.InstanceSpec.(*TSStoreSpec)
 	instanceConf["data.store-ingest-addr"] = utils.JoinHostPort(i.Host, tsStoreSpec.IngestPort)
 	instanceConf["data.store-select-addr"] = utils.JoinHostPort(i.Host, tsStoreSpec.SelectPort)
 	instanceConf["data.store-data-dir"] = tsStoreSpec.DataDir
 	instanceConf["data.store-wal-dir"] = tsStoreSpec.DataDir
-	//instanceConf["data.store-meta-dir"] = tsStoreSpec.DataDir
 	instanceConf["logging.path"] = tsStoreSpec.LogDir
 
 	instanceConf["gossip.bind-address"] = i.Host

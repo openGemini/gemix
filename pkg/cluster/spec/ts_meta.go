@@ -189,13 +189,10 @@ func (i *TSMetaInstance) SetDefaultConfig(instanceConf map[string]any) map[strin
 		instanceConf = make(map[string]any, 20)
 	}
 	var metaPeerAddrs []string
-	var tsMetaSpec *TSMetaSpec
 	for _, metaSpec := range i.topo.TSMetaServers {
-		if i.Host == metaSpec.Host && i.Port == metaSpec.ClientPort {
-			tsMetaSpec = metaSpec
-		}
 		metaPeerAddrs = append(metaPeerAddrs, utils.JoinHostPort(metaSpec.Host, metaSpec.PeerPort))
 	}
+	var tsMetaSpec = i.InstanceSpec.(*TSMetaSpec)
 	instanceConf["common.meta-join"] = metaPeerAddrs
 	instanceConf["meta.bind-address"] = utils.JoinHostPort(i.Host, tsMetaSpec.RaftPort)
 	instanceConf["meta.http-bind-address"] = utils.JoinHostPort(i.Host, tsMetaSpec.ClientPort)
