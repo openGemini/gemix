@@ -138,8 +138,19 @@ func expandRelativePath(user string, topology Topology) {
 	topo.GlobalOptions.DeployDir = Abs(user, topo.GlobalOptions.DeployDir)
 	topo.GlobalOptions.LogDir = Abs(user, topo.GlobalOptions.LogDir)
 
-	topo.MonitoredOptions.DeployDir = Abs(user, topo.MonitoredOptions.DeployDir)
-	topo.MonitoredOptions.LogDir = Abs(user, topo.MonitoredOptions.LogDir)
+	// set ts-monitor default deploy directory
+	if strings.TrimSpace(topo.MonitoredOptions.DeployDir) == "" {
+		topo.MonitoredOptions.DeployDir = topo.GlobalOptions.DeployDir
+	} else {
+		topo.MonitoredOptions.DeployDir = Abs(user, topo.MonitoredOptions.DeployDir)
+	}
+
+	// set ts-monitor default log directory
+	if strings.TrimSpace(topo.MonitoredOptions.LogDir) == "" {
+		topo.MonitoredOptions.LogDir = topo.GlobalOptions.LogDir
+	} else {
+		topo.MonitoredOptions.LogDir = Abs(user, topo.MonitoredOptions.LogDir)
+	}
 
 	for i := range topo.TSMetaServers {
 		server := topo.TSMetaServers[i]

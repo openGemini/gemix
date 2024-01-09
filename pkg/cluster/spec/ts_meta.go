@@ -41,8 +41,8 @@ type TSMetaSpec struct {
 	ListenHost string `yaml:"listen_host,omitempty"`
 	SSHPort    int    `yaml:"ssh_port,omitempty" validate:"ssh_port:editable"`
 
-	LogDir    string `yaml:"log_dir"`
-	DeployDir string `yaml:"deploy_dir"`
+	LogDir    string `yaml:"log_dir,omitempty"`
+	DeployDir string `yaml:"deploy_dir,omitempty"`
 	DataDir   string `yaml:"data_dir,omitempty"`
 
 	// port specification

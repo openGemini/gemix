@@ -15,6 +15,8 @@
 package utils
 
 import (
+	"fmt"
+
 	"github.com/joomcode/errorx"
 )
 
@@ -25,3 +27,38 @@ var (
 	// ErrTraitPreCheck means that the Error is a pre-check error so that no error logs will be outputted directly.
 	ErrTraitPreCheck = errorx.RegisterTrait("pre_check")
 )
+
+var (
+	// ErrValidateChecksum is an empty HashValidationErr object, useful for type checking
+	ErrValidateChecksum = &HashValidationErr{}
+)
+
+// HashValidationErr is the error indicates a failed hash validation
+type HashValidationErr struct {
+	cipher string
+	expect string // expected hash
+	actual string // input hash
+}
+
+// Error implements the error interface
+func (e *HashValidationErr) Error() string {
+	return fmt.Sprintf(
+		"%s checksum mismatch, expect: %v, got: %v",
+		e.cipher, e.expect, e.actual,
+	)
+}
+
+// Unwrap implements the error interface
+func (e *HashValidationErr) Unwrap() error { return nil }
+
+// Is implements the error interface
+func (e *HashValidationErr) Is(target error) bool {
+	t, ok := target.(*HashValidationErr)
+	if !ok {
+		return false
+	}
+
+	return (e.cipher == t.cipher || t.cipher == "") &&
+		(e.expect == t.expect || t.expect == "") &&
+		(e.actual == t.actual || t.actual == "")
+}
