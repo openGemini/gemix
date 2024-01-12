@@ -50,7 +50,7 @@ func buildEnvInitTasks(topo spec.Topology, opt *InstallOptions, gOpt *operator.O
 		t := task.NewBuilder(logger).
 			RootSSH(
 				host,
-				info.ssh,
+				info.Ssh,
 				opt.User,
 				sshConnProps.Password,
 				sshConnProps.IdentityFile,
@@ -61,11 +61,175 @@ func buildEnvInitTasks(topo spec.Topology, opt *InstallOptions, gOpt *operator.O
 			UserAction(host, globalOptions.User, globalOptions.Group, opt.SkipCreateUser || globalOptions.User == opt.User).
 			EnvInit(host, globalOptions.User, globalOptions.Group).
 			Mkdir(globalOptions.User, host, dirs...).
-			BuildAsStep(fmt.Sprintf("  - Prepare %s:%d", host, info.ssh))
+			BuildAsStep(fmt.Sprintf("  - Prepare %s:%d", host, info.Ssh))
 		envInitTasks = append(envInitTasks, t)
 	}
 
 	return envInitTasks
+}
+
+func buildMonitoredDeployTask(
+	m *Manager,
+	clusterVersion string,
+	uniqueHosts map[string]*spec.MonitorHostInfo, // host -> ssh-port, os, arch
+	noAgentHosts set.StringSet, // hosts that do not deploy monitor agents
+	globalOptions *spec.GlobalOptions,
+	monitoredOptions *spec.TSMonitoredOptions,
+	gOpt operator.Options,
+	p *gui.SSHConnectionProps,
+) (downloadCompTasks []*task.StepDisplay, deployCompTasks []*task.StepDisplay, err error) {
+	if monitoredOptions == nil || !monitoredOptions.TSMonitorEnabled {
+		return
+	}
+
+	uniqueCompOSArch := set.NewStringSet()
+	// monitoring agents
+	for _, comp := range []string{spec.ComponentOpenGemini} {
+		for host, info := range uniqueHosts {
+			// skip deploying monitoring agents if the instance is marked so
+			if noAgentHosts.Exist(host) {
+				continue
+			}
+
+			// populate unique comp-os-arch set
+			key := fmt.Sprintf("%s-%s-%s", comp, info.Os, info.Arch)
+			if found := uniqueCompOSArch.Exist(key); !found {
+				uniqueCompOSArch.Insert(key)
+				downloadCompTasks = append(downloadCompTasks, task.NewBuilder(m.logger).
+					Download(comp, info.Os, info.Arch, clusterVersion).
+					BuildAsStep(fmt.Sprintf("  - Download %s:%s (%s/%s)", comp, clusterVersion, info.Os, info.Arch)))
+			}
+
+			deployDir := spec.Abs(globalOptions.User, monitoredOptions.DeployDir)
+			// log dir will always be with values, but might not be used by the component
+			logDir := spec.Abs(globalOptions.User, monitoredOptions.LogDir)
+
+			deployDirs := []string{
+				deployDir,
+				logDir,
+				filepath.Join(deployDir, "bin"),
+				filepath.Join(deployDir, "conf"),
+				filepath.Join(deployDir, "scripts"),
+			}
+
+			// Deploy component
+			t := task.NewBuilder(m.logger). // TODO: only support root deploy user
+							RootSSH(
+					host,
+					info.Ssh,
+					globalOptions.User,
+					p.Password,
+					p.IdentityFile,
+					p.IdentityFilePassphrase,
+					gOpt.SSHTimeout,
+					gOpt.OptTimeout,
+				).
+				//t := task.NewSimpleUerSSH(m.logger, inst.GetManageHost(), inst.GetSSHPort(), globalOptions.User, 0, 0).
+				Mkdir(globalOptions.User, host, deployDirs...).
+				CopyComponent(
+					comp,
+					spec.ComponentTSMonitor,
+					info.Os,
+					info.Arch,
+					clusterVersion,
+					"", // use default srcPath
+					host,
+					deployDir,
+				)
+			//tb := task.NewSimpleUerSSH(m.logger, host, info.ssh, globalOptions.User, gOpt, p).
+			//	Mkdir(globalOptions.User, host, deployDirs...).
+			//	CopyComponent(
+			//		comp,
+			//		info.os,
+			//		info.arch,
+			//		version,
+			//		"",
+			//		host,
+			//		deployDir,
+			//	)
+			deployCompTasks = append(deployCompTasks, t.BuildAsStep(fmt.Sprintf("  - Deploy %s -> %s", comp, host)))
+		}
+	}
+	return
+}
+
+func buildInitMonitoredConfigTasks(
+	specManager *spec.SpecManager,
+	clusterName string,
+	uniqueHosts map[string]*spec.MonitorHostInfo, // host -> ssh-port, os, arch
+	noAgentHosts set.StringSet,
+	globalOptions spec.GlobalOptions,
+	monitoredOptions *spec.TSMonitoredOptions,
+	logger *logprinter.Logger,
+	sshTimeout, exeTimeout uint64,
+	gOpt operator.Options,
+	p *gui.SSHConnectionProps,
+) []*task.StepDisplay {
+	if monitoredOptions == nil || !monitoredOptions.TSMonitorEnabled {
+		return nil
+	}
+
+	var tasks []*task.StepDisplay
+	// monitoring agents
+	for _, comp := range []string{spec.ComponentTSMonitor} {
+		for host, info := range uniqueHosts {
+			if noAgentHosts.Exist(host) {
+				continue
+			}
+
+			deployDir := spec.Abs(globalOptions.User, monitoredOptions.DeployDir)
+			// log dir will always be with values, but might not used by the component
+			logDir := spec.Abs(globalOptions.User, monitoredOptions.LogDir)
+			// Generate configs
+
+			t := task.NewBuilder(logger). // TODO: only support root deploy user
+							RootSSH(
+					host,
+					info.Ssh,
+					globalOptions.User,
+					p.Password,
+					p.IdentityFile,
+					p.IdentityFilePassphrase,
+					gOpt.SSHTimeout,
+					gOpt.OptTimeout,
+				).
+				MonitoredConfig(
+					clusterName,
+					comp,
+					host,
+					info,
+					globalOptions.ResourceControl,
+					monitoredOptions,
+					globalOptions.User,
+					globalOptions.TLSEnabled,
+					meta.DirPaths{
+						Deploy: deployDir,
+						Log:    logDir,
+						Cache:  specManager.Path(clusterName, spec.TempConfigPath),
+					},
+				).BuildAsStep(fmt.Sprintf("  - Generate config %s -> %s", comp, host))
+
+			//t := task.NewSimpleUerSSH(logger, host, info.ssh, globalOptions.User, gOpt, p, globalOptions.SSHType).
+			//	MonitoredConfig(
+			//		clusterName,
+			//		comp,
+			//		host,
+			//		globalOptions.ResourceControl,
+			//		monitoredOptions,
+			//		globalOptions.User,
+			//		globalOptions.TLSEnabled,
+			//		meta.DirPaths{
+			//			Deploy: deployDir,
+			//			Data:   []string{dataDir},
+			//			Log:    logDir,
+			//			Cache:  specManager.Path(clusterName, spec.TempConfigPath),
+			//		},
+			//	).
+
+			tasks = append(tasks, t)
+		}
+	}
+	return tasks
 }
 
 // buildDownloadCompTasks build download component tasks

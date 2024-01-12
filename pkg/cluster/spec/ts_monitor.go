@@ -28,6 +28,18 @@ import (
 	"github.com/pkg/errors"
 )
 
+type MonitorHostInfo struct {
+	Ssh          int    // ssh port of host
+	Os           string // operating system
+	Arch         string // cpu architecture
+	MetricPath   string
+	ErrorLogPath string
+	DataPath     string
+	WALPath      string
+	ProcessName  set.StringSet
+	MonitorAddr  string
+}
+
 // TSMonitorSpec represents the ts_monitor_enabled topology specification in topology.yaml
 type TSMonitorSpec struct {
 	Arch string `yaml:"arch,omitempty"`
@@ -211,31 +223,6 @@ func (c *TSMonitorComponent) Instances() []Instance {
 			Name: c.Name(),
 			BaseInstance: BaseInstance{
 				InstanceSpec: ms,
-				Name:         c.Name(),
-				Host:         s.Host,
-				ManageHost:   s.ManageHost,
-				ListenHost:   s.ListenHost,
-				SSHP:         s.SSHPort,
-				Source:       s.GetSource(),
-				Dirs: []string{
-					s.DeployDir,
-					s.LogDir,
-				},
-			},
-			topo: c.Topology,
-		})
-	}
-
-	for _, s := range c.Topology.TSMonitorServers {
-		if instanceSet.Exist(s.Host) {
-			continue
-		}
-		s := s
-		instanceSet.Insert(s.Host)
-		ins = append(ins, &TSMonitorInstance{
-			Name: c.Name(),
-			BaseInstance: BaseInstance{
-				InstanceSpec: s,
 				Name:         c.Name(),
 				Host:         s.Host,
 				ManageHost:   s.ManageHost,

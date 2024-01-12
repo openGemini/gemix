@@ -48,7 +48,18 @@ func Uninstall(
 		insts := com.Instances()
 		err := DestroyComponent(ctx, insts, cluster, options)
 		if err != nil && !options.Force {
-			return errors.WithMessagef(err, "failed to destroy %s", com.Name())
+			return errors.WithMessagef(err, "failed to uninstall %s", com.Name())
+		}
+
+		for _, inst := range insts {
+			instCount[inst.GetManageHost()]--
+			if instCount[inst.GetManageHost()] == 0 {
+				if cluster.GetMonitoredOptions() != nil || !cluster.GetMonitoredOptions().TSMonitorEnabled {
+					if err = DestroyMonitored(ctx, inst, cluster.GetMonitoredOptions(), options.OptTimeout); err != nil && !options.Force {
+						return errors.WithStack(err)
+					}
+				}
+			}
 		}
 	}
 
@@ -147,6 +158,48 @@ func DeletePublicKey(ctx context.Context, host string) error {
 	}
 
 	logger.Infof("Delete public key %s success", host)
+	return nil
+}
+
+// DestroyMonitored destroy the monitored service.
+func DestroyMonitored(ctx context.Context, inst spec.Instance, options *spec.TSMonitoredOptions, timeout uint64) error {
+	e := ctxt.GetInner(ctx).Get(inst.GetManageHost())
+	logger := ctx.Value(logprinter.ContextKeyLogger).(*logprinter.Logger)
+
+	logger.Infof("Uninstalling monitored %s", inst.GetManageHost())
+	logger.Infof("\tUninstalling instance %s", inst.GetManageHost())
+
+	// Stop by systemd.
+	delPaths := make([]string, 0)
+
+	delPaths = append(delPaths, options.LogDir)
+
+	delPaths = append(delPaths, options.DeployDir)
+
+	delPaths = append(delPaths, fmt.Sprintf("/etc/systemd/system/%s.service", spec.ComponentTSMonitor))
+
+	c := module.ShellModuleConfig{
+		Command:  fmt.Sprintf("rm -rf %s;", strings.Join(delPaths, " ")),
+		Sudo:     true, // the .service files are in a directory owned by root
+		Chdir:    "",
+		UseShell: false,
+	}
+	shell := module.NewShellModule(c)
+	stdout, stderr, err := shell.Execute(ctx, e)
+
+	if len(stdout) > 0 {
+		fmt.Println(string(stdout))
+	}
+	if len(stderr) > 0 {
+		logger.Errorf(string(stderr))
+	}
+
+	if err != nil {
+		return errors.WithMessagef(err, "failed to uninstalling monitored: %s", inst.GetManageHost())
+	}
+
+	logger.Infof("Uninstalling monitored on %s success", inst.GetManageHost())
+
 	return nil
 }
 

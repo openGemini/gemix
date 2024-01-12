@@ -51,7 +51,7 @@ func (c *InstallPackage) Execute(ctx context.Context) error {
 
 	var cmd string
 	switch c.component {
-	case spec.ComponentTSMeta, spec.ComponentTSSql, spec.ComponentTSStore, spec.ComponentTSMonitor:
+	case spec.ComponentTSMeta, spec.ComponentTSSql, spec.ComponentTSStore, spec.ComponentTSMonitor, spec.ComponentTSServer:
 		cmd = fmt.Sprintf(`tar --no-same-owner -zxf %s -C %s --wildcards '*%s' && mv %s/usr/bin/ts-* %s && rm -r %s/usr && rm %s`, dstPath, dstDir, c.component, dstDir, dstDir, dstDir, dstPath)
 	default:
 		cmd = fmt.Sprintf(`tar --no-same-owner -zxf %s -C %s && rm %s`, dstPath, dstDir, dstPath)

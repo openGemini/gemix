@@ -138,7 +138,7 @@ func PromptForPassword(format string, a ...any) string {
 
 	fmt.Printf(format, a...)
 
-	input, err := term.ReadPassword(syscall.Stdin)
+	input, err := term.ReadPassword(int(syscall.Stdin))
 
 	if err != nil {
 		return ""

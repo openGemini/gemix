@@ -34,7 +34,8 @@ type TSSqlSpec struct {
 	Source string `yaml:"source,omitempty" validate:"source:editable"`
 
 	// Use Name to get the name with a default value if it's empty.
-	Name string `yaml:"name"`
+	Name           string `yaml:"name"`
+	IgnoreExporter bool   `yaml:"ignore_exporter,omitempty"`
 
 	Host       string `yaml:"host"`
 	ManageHost string `yaml:"manage_host,omitempty" validate:"manage_host:editable"`
@@ -62,6 +63,11 @@ func (s *TSSqlSpec) SSH() (string, int) {
 // Role returns the component role of the instance
 func (s *TSSqlSpec) Role() string {
 	return ComponentTSSql
+}
+
+// IgnoreMonitorAgent returns if the node does not have monitor agents available
+func (s *TSSqlSpec) IgnoreMonitorAgent() bool {
+	return s.IgnoreExporter
 }
 
 // GetManageHost returns the manage host of the instance
@@ -105,7 +111,7 @@ func (c *TSSqlComponent) Instances() []Instance {
 				Name:         c.Name(),
 				Host:         s.Host,
 				ManageHost:   s.ManageHost,
-				ListenHost:   s.ListenHost,
+				ListenHost:   utils.Ternary(s.ListenHost != "", s.ListenHost, c.Topology.BaseTopo().GlobalOptions.ListenHost).(string),
 				Port:         s.Port,
 				SSHP:         s.SSHPort,
 				Source:       s.GetSource(),

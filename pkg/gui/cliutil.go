@@ -14,8 +14,10 @@
 package gui
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
+	"text/template"
 
 	"github.com/joomcode/errorx"
 	"github.com/openGemini/gemix/pkg/utils"
@@ -27,6 +29,17 @@ var (
 	errMismatchArgs   = errNS.NewType("mismatch_args", utils.ErrTraitPreCheck)
 	errOperationAbort = errNS.NewType("operation_aborted", utils.ErrTraitPreCheck)
 )
+
+var templateFuncs = template.FuncMap{
+	"OsArgs":  func() string { return "install xxx" },
+	"OsArgs0": func() string { return "gemix cluster" },
+}
+
+func init() {
+	AddColorFunctions(func(name string, f any) {
+		templateFuncs[name] = f
+	})
+}
 
 // CheckCommandArgsAndMayPrintHelp checks whether user passes enough number of arguments.
 // If insufficient number of arguments are passed, an error with proper suggestion will be raised.
@@ -47,10 +60,26 @@ func CheckCommandArgsAndMayPrintHelp(cmd *cobra.Command, args []string, minArgs 
 	return true, nil
 }
 
+func formatSuggestion(templateStr string, data any) string {
+	t := template.Must(template.New("suggestion").Funcs(templateFuncs).Parse(templateStr))
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, data); err != nil {
+		panic(err)
+	}
+	return buf.String()
+}
+
 // SuggestionFromString creates a suggestion from string.
 // Usage: SomeErrorX.WithProperty(SuggestionFromString(..))
 func SuggestionFromString(str string) (errorx.Property, string) {
 	return utils.ErrPropSuggestion, strings.TrimSpace(str)
+}
+
+// SuggestionFromTemplate creates a suggestion from go template. Colorize function and some other utilities
+// are available.
+// Usage: SomeErrorX.WithProperty(SuggestionFromTemplate(..))
+func SuggestionFromTemplate(templateStr string, data any) (errorx.Property, string) {
+	return SuggestionFromString(formatSuggestion(templateStr, data))
 }
 
 // SuggestionFromFormat creates a suggestion from a format.

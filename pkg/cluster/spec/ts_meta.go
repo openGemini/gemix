@@ -16,8 +16,10 @@ package spec
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/openGemini/gemix/pkg/cluster/ctxt"
 	"github.com/openGemini/gemix/pkg/cluster/template/scripts"
@@ -52,6 +54,33 @@ type TSMetaSpec struct {
 	GossipPort int `yaml:"gossip_port"  default:"8010"`
 
 	Config map[string]any `yaml:"config,omitempty" validate:"config:ignore"`
+}
+
+// Status queries current status of the instance
+func (s *TSMetaSpec) Status(ctx context.Context, timeout time.Duration, tlsCfg *tls.Config, _ ...string) string {
+	//if timeout < time.Second {
+	//	timeout = statusQueryTimeout
+	//}
+
+	//addr := utils.JoinHostPort(s.GetManageHost(), s.ClientPort)
+	//pc := api.NewPDClient(ctx, []string{addr}, timeout, tlsCfg)
+	//
+	//// check health
+	//err := pc.CheckHealth()
+	//if err != nil {
+	//	return "Down"
+	//}
+	//
+	//// find leader node
+	//leader, err := pc.GetLeader()
+	//if err != nil {
+	//	return "ERR"
+	//}
+	res := "Up"
+	//if s.Name == leader.Name {
+	//	res += "|L"
+	//}
+	return res
 }
 
 func (s *TSMetaSpec) SSH() (string, int) {
@@ -108,7 +137,7 @@ func (c *TSMetaComponent) Instances() []Instance {
 				Name:         c.Name(),
 				Host:         s.Host,
 				ManageHost:   s.ManageHost,
-				ListenHost:   s.ListenHost,
+				ListenHost:   utils.Ternary(s.ListenHost != "", s.ListenHost, c.Topology.BaseTopo().GlobalOptions.ListenHost).(string),
 				Port:         s.ClientPort,
 				SSHP:         s.SSHPort,
 				Source:       s.GetSource(),
@@ -124,10 +153,10 @@ func (c *TSMetaComponent) Instances() []Instance {
 					s.LogDir,
 					s.DataDir,
 				},
-				//StatusFn: s.Status,
-				//UptimeFn: func(_ context.Context, timeout time.Duration, tlsCfg *tls.Config) time.Duration {
-				//	return UptimeByHost(s.GetManageHost(), s.ClientPort, timeout, tlsCfg)
-				//},
+				StatusFn: s.Status,
+				UptimeFn: func(_ context.Context, timeout time.Duration, tlsCfg *tls.Config) time.Duration {
+					return UptimeByHost(s.GetManageHost(), s.ClientPort, timeout, tlsCfg)
+				},
 			},
 			topo: c.Topology,
 		})

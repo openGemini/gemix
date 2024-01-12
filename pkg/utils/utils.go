@@ -17,6 +17,7 @@ package utils
 import (
 	"net"
 	"strconv"
+	"strings"
 )
 
 // JoinHostPort return host and port
@@ -30,4 +31,13 @@ func Ternary(condition bool, a, b any) any {
 		return a
 	}
 	return b
+}
+
+// ParseHostPort Prase host and port
+func ParseHostPort(hostport string) (host, port string) {
+	colon := strings.LastIndex(hostport, ":")
+
+	host = strings.TrimSuffix(strings.TrimPrefix(hostport[:colon], "["), "]")
+	port = hostport[colon+1:]
+	return
 }
