@@ -16,7 +16,9 @@ package spec
 
 import (
 	"os"
+	"path"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/joomcode/errorx"
@@ -65,11 +67,11 @@ func ReadFromYaml(file string) (*Specification, error) {
 
 	// TODO: check required options
 	//if pass := checkRequiredOptions(yamlSpec); !pass {
-	//	return nil, errors.New("missing requitred options for yaml configuration file")
+	//	return nil, errors.New("missing required options for yaml configuration file")
 	//}
 
 	// TODO: Update with default values
-	//updataWithGlobalDefaults(&yamlSpec)
+	//updateWithGlobalDefaults(&yamlSpec)
 
 	return yamlSpec, nil
 }
@@ -133,55 +135,59 @@ func ExpandRelativeDir(topo Topology) {
 	expandRelativePath(deployUser(topo), topo)
 }
 
-func expandRelativePath(user string, topology Topology) {
-	topo := topology.(*Specification)
-	topo.GlobalOptions.DeployDir = Abs(user, topo.GlobalOptions.DeployDir)
-	topo.GlobalOptions.LogDir = Abs(user, topo.GlobalOptions.LogDir)
+func expandRelativePath(user string, topo any) {
+	v := reflect.Indirect(reflect.ValueOf(topo).Elem())
 
-	// set ts-monitor default deploy directory
-	if strings.TrimSpace(topo.MonitoredOptions.DeployDir) == "" {
-		topo.MonitoredOptions.DeployDir = topo.GlobalOptions.DeployDir
-	} else {
-		topo.MonitoredOptions.DeployDir = Abs(user, topo.MonitoredOptions.DeployDir)
-	}
-
-	// set ts-monitor default log directory
-	if strings.TrimSpace(topo.MonitoredOptions.LogDir) == "" {
-		topo.MonitoredOptions.LogDir = topo.GlobalOptions.LogDir
-	} else {
-		topo.MonitoredOptions.LogDir = Abs(user, topo.MonitoredOptions.LogDir)
-	}
-
-	for i := range topo.TSMetaServers {
-		server := topo.TSMetaServers[i]
-		server.DeployDir = Abs(user, server.DeployDir)
-		server.LogDir = Abs(user, server.LogDir)
-		server.DataDir = Abs(user, server.DataDir)
-	}
-
-	for i := range topo.TSSqlServers {
-		server := topo.TSSqlServers[i]
-		server.DeployDir = Abs(user, server.DeployDir)
-		server.LogDir = Abs(user, server.LogDir)
-	}
-
-	for i := range topo.TSStoreServers {
-		server := topo.TSStoreServers[i]
-		server.DeployDir = Abs(user, server.DeployDir)
-		server.LogDir = Abs(user, server.LogDir)
-		server.DataDir = Abs(user, server.DataDir)
-	}
-
-	for i := range topo.TSMonitorServers {
-		server := topo.TSMonitorServers[i]
-		server.DeployDir = Abs(user, server.DeployDir)
-		server.LogDir = Abs(user, server.LogDir)
-	}
-
-	for i := range topo.Grafanas {
-		server := topo.Grafanas[i]
-		server.DeployDir = Abs(user, server.DeployDir)
-		server.DashboardDir = Abs(user, server.DashboardDir)
+	switch v.Kind() {
+	case reflect.Slice:
+		for i := 0; i < v.Len(); i++ {
+			ref := reflect.New(v.Index(i).Type())
+			ref.Elem().Set(v.Index(i))
+			expandRelativePath(user, ref.Interface())
+			v.Index(i).Set(ref.Elem())
+		}
+	case reflect.Struct:
+		// We should deal with DeployDir first, because DataDir and LogDir depends on it
+		dirs := []string{"DeployDir", "DataDir", "LogDir"}
+		for _, dir := range dirs {
+			f := v.FieldByName(dir)
+			if !f.IsValid() || f.String() == "" {
+				continue
+			}
+			switch dir {
+			case "DeployDir":
+				f.SetString(Abs(user, f.String()))
+			case "DataDir":
+				// Some components supports multiple data dirs split by comma
+				ds := strings.Split(f.String(), ",")
+				ads := []string{}
+				for _, d := range ds {
+					if strings.HasPrefix(d, "/") {
+						ads = append(ads, d)
+					} else {
+						ads = append(ads, path.Join(v.FieldByName("DeployDir").String(), d))
+					}
+				}
+				f.SetString(strings.Join(ads, ","))
+			case "LogDir":
+				if !strings.HasPrefix(f.String(), "/") {
+					f.SetString(path.Join(v.FieldByName("DeployDir").String(), f.String()))
+				}
+			}
+		}
+		// Deal with all fields (expandRelativePath will do nothing on string filed)
+		for i := 0; i < v.NumField(); i++ {
+			// We don't deal with GlobalOptions because relative path in GlobalOptions.Data has special meaning
+			if v.Type().Field(i).Name == "GlobalOptions" {
+				continue
+			}
+			ref := reflect.New(v.Field(i).Type())
+			ref.Elem().Set(v.Field(i))
+			expandRelativePath(user, ref.Interface())
+			v.Field(i).Set(ref.Elem())
+		}
+	case reflect.Ptr:
+		expandRelativePath(user, v.Interface())
 	}
 }
 

@@ -8,44 +8,41 @@ global:
   ### group is used to specify the group name the user belong to if it's not the same as user.
   # group: "root"
   ### Storage directory for cluster deployment files, startup scripts, and configuration files.
-  deploy_dir: "/var/lib/openGemini/deploy"
-  ### openGemini Cluster log file storage directory.
-  log_dir: "/var/lib/openGemini/logs"
+  deploy_dir: "/gemini-deploy"
   ### openGemini Cluster data storage directory
-  data_dir: "/gemini-data/meta"
-  # operating system, linux/darwin.
+  data_dir: "/gemini-data"
+  ### operating system, linux/darwin.
   os: "linux"
-  # Supported values: "amd64", "arm64" (default: "amd64").
+  ### Supported values: "amd64", "arm64" (default: "amd64").
   arch: "amd64"
-  # # Resource Control is used to limit the resource of an instance.
-  # # See: https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html
-  # # Supports using instance-level `resource_control` to override global `resource_control`.
+  ### Resource Control is used to limit the resource of an instance.
+  ### See: https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html
+  ### Supports using instance-level `resource_control` to override global `resource_control`.
   # resource_control:
-  #   # See: https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#MemoryLimit=bytes
-  #   memory_limit: "2G"
-  #   # See: https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#CPUQuota=
-  #   # The percentage specifies how much CPU time the unit shall get at maximum, relative to the total CPU time available on one CPU. Use values > 100% for allotting CPU time on more than one CPU.
-  #   # Example: CPUQuota=200% ensures that the executed processes will never get more than two CPU time.
-  #   cpu_quota: "200%"
-  #   # See: https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#IOReadBandwidthMax=device%20bytes
-  #   io_read_bandwidth_max: "/dev/disk/by-path/pci-0000:00:1f.2-scsi-0:0:0:0 100M"
-  #   io_write_bandwidth_max: "/dev/disk/by-path/pci-0000:00:1f.2-scsi-0:0:0:0 100M"
+    ### See: https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#MemoryLimit=bytes
+    # memory_limit: "2G"
+    ### See: https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#CPUQuota=
+    ### The percentage specifies how much CPU time the unit shall get at maximum, relative to the total CPU time available on one CPU. Use values > 100% for allotting CPU time on more than one CPU.
+    ### Example: CPUQuota=200% ensures that the executed processes will never get more than two CPU time.
+    # cpu_quota: "200%"
+    ### See: https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#IOReadBandwidthMax=device%20bytes
+    # io_read_bandwidth_max: "/dev/disk/by-path/pci-0000:00:1f.2-scsi-0:0:0:0 100M"
+    # io_write_bandwidth_max: "/dev/disk/by-path/pci-0000:00:1f.2-scsi-0:0:0:0 100M"
 
 ### Monitored variables are applied to all the machines.
 monitored:
   ### Enable ts-monitor instance for all the machines
   ts_monitor_enabled: true
   ### Storage directory for deployment files, startup scripts, and configuration files of monitoring components.
-  # deploy_dir: "/var/lib/openGemini/deploy"
+  # deploy_dir: "/gemini-deploy/ts-monitor"
   ### Log storage directory of the ts-monitor component.
-  # log_dir: "/var/lib/openGemini/logs"
+  # log_dir: "/gemini-deploy/ts-monitor/logs"
 
   ### Server configs are used to specify the runtime configuration of openGemini components.
   ### All configuration items can be found in openGemini docs:
   ### - ts-meta: https://docs.opengemini.org/
   ### - ts-sql: https://docs.opengemini.org/
   ### - ts-store: https://docs.opengemini.org/
-  ### - ts-monitor: https://docs.opengemini.org/
   ###
   ### All configuration items use points to represent the hierarchy, e.g:
   ###   common.ha-policy
@@ -53,10 +50,9 @@ monitored:
   ### - example: https://github.com/openGemini/openGemini-UP/blob/main/embed/examples/cluster/topology.example.yaml
   ### You can overwrite this configuration via the instance-level `config` field.
   # server_configs:
-  # ts-meta:
-  # ts-sql:
-  # ts-store:
-  # ts-monitor:
+    # ts-meta:
+    # ts-sql:
+    # ts-store:
 
 # Server configs are used to specify the configuration of ts-meta Servers.
 ts_meta_servers:
@@ -73,35 +69,35 @@ ts_meta_servers:
     ### communication gossip port among ts-meta and ts-store Server nodes.
     # gossip_port: 8010
     ### ts-meta Server deployment file, startup script, configuration file storage directory.
-    deploy_dir: "/var/lib/openGemini/deploy"
+    deploy_dir: "/gemini-deploy/ts-meta-8091"
     ### ts-meta Server logs storage directory.
-    log_dir: "/var/lib/openGemini/logs"
+    log_dir: "/gemini-deploy/ts-meta-8091/logs"
     ### ts-meta Server meta data storage directory.
-    data_dir: "/var/lib/openGemini/meta"
+    data_dir: "/gemini-data/ts-meta-8091"
     # config:
-    #   logging.level: warning
+    #   logging.level: warn
   - host: 10.0.1.12
     # ssh_port: 22
-    # client_port: 8091
+    client_port: 8091
     # peer_port: 8092
     # raft_port: 8088
     # gossip_port: 8010
-    deploy_dir: "/var/lib/openGemini/deploy"
-    log_dir: "/var/lib/openGemini/logs"
-    data_dir: "/var/lib/openGemini/meta"
+    deploy_dir: "/gemini-deploy/ts-meta-8091"
+    log_dir: "/gemini-deploy/ts-meta-8091/logs"
+    data_dir: "/gemini-data/ts-meta-8091"
     # config:
-    #   logging.level: warning
+    #   logging.level: warn
   - host: 10.0.1.13
     # ssh_port: 22
-    # client_port: 8091
+    client_port: 8091
     # peer_port: 8092
     # raft_port: 8088
     # gossip_port: 8010
-    deploy_dir: "/var/lib/openGemini/deploy"
-    log_dir: "/var/lib/openGemini/logs"
-    data_dir: "/var/lib/openGemini/meta"
+    deploy_dir: "/gemini-deploy/ts-meta-8091"
+    log_dir: "/gemini-deploy/ts-meta-8091/logs"
+    data_dir: "/gemini-data/ts-meta-8091"
     # config:
-    #   logging.level: warning
+    #   logging.level: warn
 
 ### Server configs are used to specify the configuration of ts-sql Servers.
 ts_sql_servers:
@@ -110,27 +106,27 @@ ts_sql_servers:
     ### SSH port of the server.
     # ssh_port: 22
     ### Access the openGemini cluster port.
-    # port: 8086
+    port: 8086
     ### ts-sql Server deployment file, startup script, configuration file storage directory.
-    deploy_dir: "/var/lib/openGemini/deploy"
+    deploy_dir: "/gemini-deploy/ts-sql-8086"
     ### ts-sql Server logs storage directory.
-    log_dir: "/var/lib/openGemini/logs"
+    log_dir: "/gemini-deploy/ts-sql-8086/logs"
     # config:
-    #   logging.level: warning
+    #   logging.level: warn
   - host: 10.0.1.15
     # ssh_port: 22
-    # port: 8086
-    deploy_dir: "/var/lib/openGemini/deploy"
-    log_dir: "/var/lib/openGemini/logs"
+    port: 8086
+    deploy_dir: "/gemini-deploy/ts-sql-8086"
+    log_dir: "/gemini-deploy/ts-sql-8086/logs"
     # config:
-    #   logging.level: warning
+    #   logging.level: warn
   - host: 10.0.1.16
     # ssh_port: 22
-    # port: 8086
-    deploy_dir: "/var/lib/openGemini/deploy"
-    log_dir: "/var/lib/openGemini/logs"
+    port: 8086
+    deploy_dir: "/gemini-deploy/ts-sql-8086"
+    log_dir: "/gemini-deploy/ts-sql-8086/logs"
     # config:
-    #   logging.level: warning
+    #   logging.level: warn
 
 ### Server configs are used to specify the configuration of ts-store Servers.
 ts_store_servers:
@@ -145,33 +141,54 @@ ts_store_servers:
     ### communication gossip port among ts-meta and ts-store Server nodes.
     # gossip_port: 8011
     ### ts-store Server deployment file, startup script, configuration file storage directory.
-    deploy_dir: "/var/lib/openGemini/deploy"
+    deploy_dir: "/gemini-deploy/ts-store-8401"
     ### ts-store Server logs storage directory.
-    log_dir: "/var/lib/openGemini/logs"
+    log_dir: "/gemini-deploy/ts-store-8401/logs"
     ### ts-store Server meta data storage directory.
-    data_dir: "/var/lib/openGemini/data"
+    data_dir: "/gemini-data/ts-store-8401"
     # config:
-    #   logging.level: warning
+    #   logging.level: warn
   - host: 10.0.1.15
     # ssh_port: 22
     # ingest_port: 8400
     # select_port: 8401
     # gossip_port: 8011
-    deploy_dir: "/var/lib/openGemini/deploy"
-    log_dir: "/var/lib/openGemini/logs"
-    data_dir: "/var/lib/openGemini/data"
+    deploy_dir: "/gemini-deploy/ts-store-8401"
+    log_dir: "/gemini-deploy/ts-store-8401/logs"
+    data_dir: "/gemini-data/ts-store-8401"
     # config:
-    #   logging.level: warning
+    #   logging.level: warn
   - host: 10.0.1.16
     # ssh_port: 22
     # ingest_port: 8400
     # select_port: 8401
     # gossip_port: 8011
-    deploy_dir: "/var/lib/openGemini/deploy"
-    log_dir: "/var/lib/openGemini/logs"
-    data_dir: "/var/lib/openGemini/data"
+    deploy_dir: "/gemini-deploy/ts-store-8401"
+    log_dir: "/gemini-deploy/ts-store-8401/logs"
+    data_dir: "/gemini-data/ts-store-8401"
     # config:
-    #   logging.level: warning
+    #   logging.level: warn
+
+### Server configs are used to specify the configuration of ts-server Server.
+monitoring_servers:
+  ### The ip address of the Monitoring Server.
+  - host: 10.0.1.17
+    ### SSH port of the server.
+    # ssh_port: 22
+    ### ts-server Service communication port.
+    # port: 8186
+    ### Access the ts-meta cluster port. (for devops)
+    # client_port: 8191
+    # peer_port: 8192
+    # raft_port: 8188
+    # ingest_port: 8410
+    # select_port: 8411
+    ### ts-server deployment file, startup script, configuration file storage directory.
+    # deploy_dir: "/gemini-deploy/ts-server-8186"
+    ### ts-server log file storage directory.
+    # log_dir: "/gemini-deploy/ts-server-8186/logs"
+    ### ts-server data storage directory.
+    # data_dir: "/gemini-data/ts-server-8186"
 
 ### Server configs are used to specify the configuration of Grafana Servers.
 grafana_servers:
@@ -180,7 +197,7 @@ grafana_servers:
     ### Grafana Web monitoring service client (browser) access port
     # port: 3000
     ### Grafana deployment file, startup script, configuration file storage directory.
-    # deploy_dir: /var/lib/openGemini/deploy/grafana-3000
+    # deploy_dir: /gemini-deploy/grafana-3000
     ### grafana dashboard dir on gemix machine
     # dashboard_dir: /home/gemini/dashboards
     # config:

@@ -59,6 +59,8 @@ func Start(
 	nodeFilter := set.NewStringSet(options.Nodes...)
 	components := cluster.ComponentsByStartOrder()
 	components = FilterComponent(components, roleFilter)
+	TSMonitoredOptions := cluster.GetMonitoredOptions()
+	noAgentHosts := set.NewStringSet()
 
 	for _, comp := range components {
 		insts := FilterInstance(comp.Instances(), nodeFilter)
@@ -69,6 +71,9 @@ func Start(
 
 		errg, _ := errgroup.WithContext(ctx)
 		for _, inst := range insts {
+			//if !inst.IgnoreMonitorAgent() {
+			//	uniqueHosts.Insert(inst.GetManageHost())
+			//}
 			uniqueHosts.Insert(inst.GetManageHost())
 		}
 		if err = errg.Wait(); err != nil {
@@ -76,12 +81,15 @@ func Start(
 		}
 	}
 
-	//hosts := make([]string, 0, len(uniqueHosts))
-	//for host := range uniqueHosts {
-	//	hosts = append(hosts, host)
-	//}
-	//return StartMonitored(ctx, hosts, noAgentHosts, monitoredOptions, options.OptTimeout)
-	return nil
+	if TSMonitoredOptions == nil || !TSMonitoredOptions.TSMonitorEnabled {
+		return nil
+	}
+
+	hosts := make([]string, 0, len(uniqueHosts))
+	for host := range uniqueHosts {
+		hosts = append(hosts, host)
+	}
+	return StartMonitored(ctx, hosts, noAgentHosts, options.OptTimeout)
 }
 
 // Stop the cluster.
@@ -94,6 +102,8 @@ func Stop(
 	nodeFilter := set.NewStringSet(options.Nodes...)
 	components := cluster.ComponentsByStopOrder()
 	components = FilterComponent(components, roleFilter)
+	monitoredOptions := cluster.GetMonitoredOptions()
+	noAgentHosts := set.NewStringSet()
 
 	instCount := map[string]int{}
 	cluster.IterInstance(func(inst spec.Instance) {
@@ -111,7 +121,133 @@ func Stop(
 		if err != nil && !options.Force {
 			return errors.WithMessagef(err, "failed to stop %s", comp.Name())
 		}
+		for _, inst := range insts {
+			//if !inst.IgnoreMonitorAgent() {
+			//	instCount[inst.GetManageHost()]--
+			//}
+			instCount[inst.GetManageHost()]--
+		}
 	}
+
+	if monitoredOptions == nil || !monitoredOptions.TSMonitorEnabled {
+		return nil
+	}
+
+	hosts := make([]string, 0)
+	for host, count := range instCount {
+		if count != 0 {
+			continue
+		}
+		hosts = append(hosts, host)
+	}
+
+	if err := StopMonitored(ctx, hosts, noAgentHosts, options.OptTimeout); err != nil && !options.Force {
+		return err
+	}
+
+	return nil
+}
+
+// Restart the cluster.
+func Restart(
+	ctx context.Context,
+	cluster spec.Topology,
+	options Options,
+	tlsCfg *tls.Config,
+) error {
+	err := Stop(ctx, cluster, options)
+	if err != nil {
+		return errors.WithMessagef(err, "failed to stop")
+	}
+
+	err = Start(ctx, cluster, options, tlsCfg)
+	if err != nil {
+		return errors.WithMessagef(err, "failed to start")
+	}
+
+	return nil
+}
+
+// StartMonitored start BlackboxExporter and NodeExporter
+func StartMonitored(ctx context.Context, hosts []string, noAgentHosts set.StringSet, timeout uint64) error {
+	return systemctlMonitor(ctx, hosts, noAgentHosts, "start", timeout)
+}
+
+// StopMonitored stop BlackboxExporter and NodeExporter
+func StopMonitored(ctx context.Context, hosts []string, noAgentHosts set.StringSet, timeout uint64) error {
+	return systemctlMonitor(ctx, hosts, noAgentHosts, "stop", timeout)
+}
+
+// RestartMonitored stop BlackboxExporter and NodeExporter
+func RestartMonitored(ctx context.Context, hosts []string, noAgentHosts set.StringSet, timeout uint64) error {
+	err := StopMonitored(ctx, hosts, noAgentHosts, timeout)
+	if err != nil {
+		return err
+	}
+
+	return StartMonitored(ctx, hosts, noAgentHosts, timeout)
+}
+
+// EnableMonitored enable/disable monitor service in a cluster
+func EnableMonitored(ctx context.Context, hosts []string, noAgentHosts set.StringSet, timeout uint64, isEnable bool) error {
+	action := "disable"
+	if isEnable {
+		action = "enable"
+	}
+
+	return systemctlMonitor(ctx, hosts, noAgentHosts, action, timeout)
+}
+
+func systemctlMonitor(ctx context.Context, hosts []string, noAgentHosts set.StringSet, action string, timeout uint64) error {
+	logger := ctx.Value(logprinter.ContextKeyLogger).(*logprinter.Logger)
+	for _, comp := range []string{spec.ComponentTSMonitor} {
+		logger.Infof("%s component %s", actionPrevMsgs[action], comp)
+
+		errg, _ := errgroup.WithContext(ctx)
+		for _, host := range hosts {
+			host := host
+			if noAgentHosts.Exist(host) {
+				logger.Debugf("Ignored %s component %s for %s", action, comp, host)
+				continue
+			}
+			errg.Go(func() error {
+				logger.Infof("\t%s instance %s", actionPrevMsgs[action], host)
+				e := ctxt.GetInner(ctx).Get(host)
+				service := fmt.Sprintf("%s.service", comp)
+
+				if err := systemctl(ctx, e, service, action, timeout); err != nil {
+					return toFailedActionError(err, action, host, service, "")
+				}
+
+				logger.Infof("\t%s %s success", actionPostMsgs[action], host)
+				return nil
+			})
+		}
+		if err := errg.Wait(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+//lint:ignore U1000 keep this
+func restartInstance(ctx context.Context, ins spec.Instance, timeout uint64, tlsCfg *tls.Config) error {
+	e := ctxt.GetInner(ctx).Get(ins.GetManageHost())
+	logger := ctx.Value(logprinter.ContextKeyLogger).(*logprinter.Logger)
+	logger.Infof("\tRestarting instance %s", ins.ID())
+
+	if err := systemctl(ctx, e, ins.ServiceName(), "restart", timeout); err != nil {
+		return toFailedActionError(err, "restart", ins.GetManageHost(), ins.ServiceName(), ins.LogDir())
+	}
+
+	// Check ready.
+	if err := ins.Ready(ctx, e, timeout, tlsCfg); err != nil {
+		return toFailedActionError(err, "restart", ins.GetManageHost(), ins.ServiceName(), ins.LogDir())
+	}
+
+	logger.Infof("\tRestart instance %s success", ins.ID())
+
 	return nil
 }
 

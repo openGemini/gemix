@@ -90,6 +90,22 @@ func (m *Manager) Install(
 		return errors.WithStack(err)
 	}
 
+	instCnt := 0
+	topo.IterInstance(func(inst spec.Instance) {
+		switch inst.ComponentName() {
+		// monitoring components are only useful when deployed with
+		// core components, we do not support deploying any bare
+		// monitoring system.
+		case spec.ComponentGrafana,
+			spec.ComponentTSServer:
+			return
+		}
+		instCnt++
+	})
+	if instCnt < 1 {
+		return fmt.Errorf("no valid instance found in the input topology, please check your config")
+	}
+
 	spec.ExpandRelativeDir(topo)
 
 	if err = checkConflict(m, clusterName, topo); err != nil {
@@ -152,6 +168,39 @@ func (m *Manager) Install(
 
 	refreshConfigTasks := buildInitConfigTasks(m, clusterName, topo, metadata.GetBaseMeta(), gOpt)
 
+	uniqueHosts, noAgentHosts := getMonitorHosts(topo)
+
+	// Deploy monitor relevant components to remote
+	dlTasks, dpTasks, err := buildMonitoredDeployTask(
+		m,
+		clusterVersion,
+		uniqueHosts,
+		noAgentHosts,
+		globalOptions,
+		topo.GetMonitoredOptions(),
+		gOpt,
+		sshConnProps,
+	)
+	if err != nil {
+		return err
+	}
+	downloadCompTasks = append(downloadCompTasks, dlTasks...)
+	deployCompTasks = append(deployCompTasks, dpTasks...)
+
+	monitorConfigTasks := buildInitMonitoredConfigTasks(
+		m.specManager,
+		clusterName,
+		uniqueHosts,
+		noAgentHosts,
+		*topo.BaseTopo().GlobalOptions,
+		topo.GetMonitoredOptions(),
+		m.logger,
+		gOpt.SSHTimeout,
+		gOpt.OptTimeout,
+		gOpt,
+		sshConnProps,
+	)
+
 	builder := task.NewBuilder(m.logger).
 		Step("+ Generate SSH keys",
 			task.NewBuilder(m.logger).
@@ -163,8 +212,8 @@ func (m *Manager) Install(
 		ParallelStep("+ Mkdir at target hosts", false, mkdirTasks...).
 		ParallelStep("+ Deploy openGemini instance", false, deployCompTasks...).
 		//ParallelStep("+ Copy certificate to remote host", gOpt.Force, certificateTasks...).
-		ParallelStep("+ Init instance configs", gOpt.Force, refreshConfigTasks...)
-	//ParallelStep("+ Init monitor configs", gOpt.Force, monitorConfigTasks...)
+		ParallelStep("+ Init instance configs", gOpt.Force, refreshConfigTasks...).
+		ParallelStep("+ Init monitor configs", gOpt.Force, monitorConfigTasks...)
 
 	t := builder.Build()
 
@@ -187,7 +236,7 @@ func (m *Manager) Install(
 		return err
 	}
 
-	hint := color.New(color.FgBlue).Sprintf("%s start %s", "gemix cluster", clusterName)
+	hint := color.New(color.FgHiBlue).Sprintf("%s start %s", "gemix cluster", clusterName)
 	m.logger.Infof("Cluster `%s` installed successfully, you can start it with command: `%s`\n", clusterName, hint)
 	return nil
 }

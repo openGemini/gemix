@@ -37,11 +37,16 @@ const (
 	FullOSType FullHostType = "OS"
 )
 
+var (
+	RoleMonitor = "monitor"
+)
+
 type (
 	// InstanceSpec represent a instance specification
 	InstanceSpec interface {
 		Role() string
 		SSH() (string, int)
+		//IgnoreMonitorAgent() bool
 	}
 
 	// GlobalOptions represents the global options for all groups in topology
@@ -51,6 +56,7 @@ type (
 		Group           string               `yaml:"group,omitempty"`
 		SSHPort         int                  `yaml:"ssh_port,omitempty" default:"22" validate:"ssh_port:editable"`
 		TLSEnabled      bool                 `yaml:"enable_tls,omitempty"`
+		ListenHost      string               `yaml:"listen_host,omitempty" validate:"listen_host:editable"`
 		DeployDir       string               `yaml:"deploy_dir,omitempty" default:"deploy"`
 		LogDir          string               `yaml:"log_dir,omitempty" default:"logs"`
 		DataDir         string               `yaml:"data_dir,omitempty" default:"data"`
@@ -84,10 +90,9 @@ type (
 		TSMetaServers    []*TSMetaSpec      `yaml:"ts_meta_servers"`
 		TSSqlServers     []*TSSqlSpec       `yaml:"ts_sql_servers"`
 		TSStoreServers   []*TSStoreSpec     `yaml:"ts_store_servers"`
-		TSMonitorServers []*TSMonitorSpec   `yaml:"ts_monitor_servers,omitempty"`
+		Monitors         []*TSServerSpec    `yaml:"monitoring_servers"`
 		Grafanas         []*GrafanaSpec     `yaml:"grafana_servers,omitempty"`
 		//DashboardServers []*DashboardSpec `yaml:"opengemini_dashboard_servers,omitempty"`
-		//Monitors         []*PrometheusSpec    `yaml:"monitoring_servers"`
 	}
 )
 
@@ -102,6 +107,7 @@ type Topology interface {
 	ComponentsByStopOrder() []Component
 	//ComponentsByUpdateOrder(curVer string) []Component
 	IterInstance(fn func(instance Instance), concurrency ...int)
+	GetMonitoredOptions() *TSMonitoredOptions
 	CountDir(host string, dir string) int // count how many time a path is used by instances in cluster
 	//TLSConfig(dir string) (*tls.Config, error)
 	//Merge(that Topology) Topology // TODO: for update
@@ -110,10 +116,13 @@ type Topology interface {
 }
 
 type BaseTopo struct {
-	GlobalOptions *GlobalOptions
-	MasterList    []string
+	GlobalOptions    *GlobalOptions
+	MonitoredOptions *TSMonitoredOptions
+	MasterList       []string
 
-	Grafanas []*GrafanaSpec
+	GrafanaVersion *string
+	Monitors       []*TSServerSpec
+	Grafanas       []*GrafanaSpec
 }
 
 // BaseMeta is the base info of metadata.
@@ -140,6 +149,11 @@ func AllComponentNames() (roles []string) {
 	return
 }
 
+// GetMonitoredOptions implements Topology interface.
+func (s *Specification) GetMonitoredOptions() *TSMonitoredOptions {
+	return &s.MonitoredOptions
+}
+
 // UnmarshalYAML implements the yaml.Unmarshaler interface,
 // it sets the default values when unmarshaling the topology file
 func (s *Specification) UnmarshalYAML(unmarshal func(any) error) error {
@@ -153,14 +167,24 @@ func (s *Specification) UnmarshalYAML(unmarshal func(any) error) error {
 		return errors.WithStack(err)
 	}
 
+	// Set monitored options
+	if s.MonitoredOptions.DeployDir == "" {
+		s.MonitoredOptions.DeployDir = filepath.Join(s.GlobalOptions.DeployDir, RoleMonitor)
+	}
+	if s.MonitoredOptions.LogDir == "" {
+		s.MonitoredOptions.LogDir = "logs"
+	}
+	if !strings.HasPrefix(s.MonitoredOptions.LogDir, "/") &&
+		!strings.HasPrefix(s.MonitoredOptions.LogDir, s.MonitoredOptions.DeployDir) {
+		s.MonitoredOptions.LogDir = filepath.Join(s.MonitoredOptions.DeployDir, s.MonitoredOptions.LogDir)
+	}
+
 	// populate custom default values as needed
 	if err := fillCustomDefaults(&s.GlobalOptions, s); err != nil {
 		return err
 	}
 
-	// TODO: validate yaml configs
-	//return s.Validate()
-	return nil
+	return s.Validate()
 }
 
 // fillDefaults tries to fill custom fields to their default values
@@ -335,11 +359,48 @@ func setCustomDefaults(globalOptions *GlobalOptions, field reflect.Value) error 
 	return nil
 }
 
+func findField(v reflect.Value, fieldName string) (int, bool) {
+	for i := 0; i < reflect.Indirect(v).NumField(); i++ {
+		if reflect.Indirect(v).Type().Field(i).Name == fieldName {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+//lint:ignore U1000 keep this
+func findSliceField(v Topology, fieldName string) (reflect.Value, bool) {
+	topo := reflect.ValueOf(v)
+	if topo.Kind() == reflect.Ptr {
+		topo = topo.Elem()
+	}
+
+	j, found := findField(topo, fieldName)
+	if found {
+		val := topo.Field(j)
+		if val.Kind() == reflect.Slice || val.Kind() == reflect.Array {
+			return val, true
+		}
+	}
+	return reflect.Value{}, false
+}
+
+// GetTsMetaList returns a list of ts-meta API hosts of the current cluster
+func (s *Specification) GetTsMetaList() []string {
+	var tsMetaList []string
+
+	for _, m := range s.TSMetaServers {
+		tsMetaList = append(tsMetaList, utils.JoinHostPort(m.Host, m.ClientPort))
+	}
+
+	return tsMetaList
+}
+
 // GetTSMetaListWithManageHost returns a list of ts-meta API hosts of the current cluster
 func (s *Specification) GetTSMetaListWithManageHost() []string {
 	var tsMetaList []string
-	for _, meta := range s.TSMetaServers {
-		tsMetaList = append(tsMetaList, utils.JoinHostPort(meta.GetManageHost(), meta.ClientPort))
+	for _, m := range s.TSMetaServers {
+		tsMetaList = append(tsMetaList, utils.JoinHostPort(m.GetManageHost(), m.ClientPort))
 	}
 
 	return tsMetaList
@@ -348,9 +409,11 @@ func (s *Specification) GetTSMetaListWithManageHost() []string {
 // BaseTopo implements Specification interface.
 func (s *Specification) BaseTopo() *BaseTopo {
 	return &BaseTopo{
-		GlobalOptions: &s.GlobalOptions,
-		MasterList:    s.GetTSMetaListWithManageHost(),
-		Grafanas:      s.Grafanas,
+		GlobalOptions:    &s.GlobalOptions,
+		MonitoredOptions: s.GetMonitoredOptions(),
+		MasterList:       s.GetTSMetaListWithManageHost(),
+		Monitors:         s.Monitors,
+		Grafanas:         s.Grafanas,
 	}
 }
 
@@ -370,12 +433,12 @@ func (s *Specification) ComponentsByStopOrder() (comps []Component) {
 
 // ComponentsByStartOrder return component in the order need to start.
 func (s *Specification) ComponentsByStartOrder() (comps []Component) {
-	// "ts-meta", "ts-store", "ts-sql", "ts-data", "ts-monitor", "grafana"
+	// "ts-meta", "ts-store", "ts-sql", "ts-data", "monitor(ts-server)", "grafana"
 	comps = append(comps, &TSMetaComponent{Topology: s})
 	comps = append(comps, &TSStoreComponent{Topology: s})
 	comps = append(comps, &TSSqlComponent{Topology: s})
 	//comps = append(comps, &TSDataComponent{s})
-	comps = append(comps, &TSMonitorComponent{Topology: s})
+	comps = append(comps, &TSServerComponent{Topology: s})
 	comps = append(comps, &GrafanaComponent{Topology: s})
 	return
 }
@@ -412,6 +475,21 @@ func (s *Specification) IterInstance(fn func(instance Instance), concurrency ...
 	wg.Wait()
 }
 
+// IterHost iterates one instance for each host
+func IterHost(topo Topology, fn func(instance Instance)) {
+	hostMap := make(map[string]bool)
+	for _, comp := range topo.ComponentsByStartOrder() {
+		for _, inst := range comp.Instances() {
+			host := inst.GetHost()
+			_, ok := hostMap[host]
+			if !ok {
+				hostMap[host] = true
+				fn(inst)
+			}
+		}
+	}
+}
+
 // FillHostArchOrOS fills the topology with the given host->arch
 func (s *Specification) FillHostArchOrOS(hostArchOrOS map[string]string, fullType FullHostType) error {
 	if err := FillHostArchOrOS(s, hostArchOrOS, fullType); err != nil {
@@ -434,60 +512,110 @@ func FillHostArchOrOS(s *Specification, hostArchOrOS map[string]string, fullType
 		}
 	}
 
+	v := reflect.ValueOf(s).Elem()
+	t := v.Type()
+
+	for i := 0; i < t.NumField(); i++ {
+		field := v.Field(i)
+		if field.Kind() != reflect.Slice {
+			continue
+		}
+		for j := 0; j < field.Len(); j++ {
+			if err := setHostArchOrOS(field.Index(j), hostArchOrOS, fullType); err != nil {
+				return err
+			}
+		}
+	}
+
+	//if fullType == FullOSType {
+	//	for _, server := range s.TSMetaServers {
+	//		if server.OS == "" {
+	//			server.OS = hostArchOrOS[server.Host]
+	//		}
+	//	}
+	//	for _, server := range s.TSSqlServers {
+	//		if server.OS == "" {
+	//			server.OS = hostArchOrOS[server.Host]
+	//		}
+	//	}
+	//	for _, server := range s.TSStoreServers {
+	//		if server.OS == "" {
+	//			server.OS = hostArchOrOS[server.Host]
+	//		}
+	//	}
+	//	for _, server := range s.Monitors {
+	//		if server.OS == "" {
+	//			server.OS = hostArchOrOS[server.Host]
+	//		}
+	//	}
+	//	for _, server := range s.Grafanas {
+	//		if server.OS == "" {
+	//			server.OS = hostArchOrOS[server.Host]
+	//		}
+	//	}
+	//}
+	//if fullType == FullArchType {
+	//	for _, server := range s.TSMetaServers {
+	//		if server.Arch == "" {
+	//			server.Arch = hostArchOrOS[server.Host]
+	//		}
+	//	}
+	//	for _, server := range s.TSSqlServers {
+	//		if server.Arch == "" {
+	//			server.Arch = hostArchOrOS[server.Host]
+	//		}
+	//	}
+	//	for _, server := range s.TSStoreServers {
+	//		if server.Arch == "" {
+	//			server.Arch = hostArchOrOS[server.Host]
+	//		}
+	//	}
+	//	for _, server := range s.Monitors {
+	//		if server.Arch == "" {
+	//			server.Arch = hostArchOrOS[server.Host]
+	//		}
+	//	}
+	//	for _, server := range s.Grafanas {
+	//		if server.Arch == "" {
+	//			server.Arch = hostArchOrOS[server.Host]
+	//		}
+	//	}
+	//}
+	return nil
+}
+
+func setHostArchOrOS(field reflect.Value, hostArchOrOS map[string]string, fullType FullHostType) error {
+	if !field.CanSet() || isSkipField(field) {
+		return nil
+	}
+
+	if field.Kind() == reflect.Ptr {
+		return setHostArchOrOS(field.Elem(), hostArchOrOS, fullType)
+	}
+
+	if field.Kind() != reflect.Struct {
+		return nil
+	}
+
+	host := field.FieldByName("Host")
+	if field.FieldByName("ManageHost").String() != "" {
+		host = field.FieldByName("ManageHost")
+	}
+
+	arch := field.FieldByName("Arch")
+	os := field.FieldByName("OS")
+
+	// set arch only if not set before
 	if fullType == FullOSType {
-		for _, server := range s.TSMetaServers {
-			if server.OS == "" {
-				server.OS = hostArchOrOS[server.Host]
-			}
+		if !host.IsZero() && os.CanSet() && len(os.String()) == 0 {
+			os.Set(reflect.ValueOf(hostArchOrOS[host.String()]))
 		}
-		for _, server := range s.TSSqlServers {
-			if server.OS == "" {
-				server.OS = hostArchOrOS[server.Host]
-			}
-		}
-		for _, server := range s.TSStoreServers {
-			if server.OS == "" {
-				server.OS = hostArchOrOS[server.Host]
-			}
-		}
-		for _, server := range s.TSMonitorServers {
-			if server.OS == "" {
-				server.OS = hostArchOrOS[server.Host]
-			}
-		}
-		for _, server := range s.Grafanas {
-			if server.OS == "" {
-				server.OS = hostArchOrOS[server.Host]
-			}
+	} else {
+		if !host.IsZero() && arch.CanSet() && len(arch.String()) == 0 {
+			arch.Set(reflect.ValueOf(hostArchOrOS[host.String()]))
 		}
 	}
-	if fullType == FullArchType {
-		for _, server := range s.TSMetaServers {
-			if server.Arch == "" {
-				server.Arch = hostArchOrOS[server.Host]
-			}
-		}
-		for _, server := range s.TSSqlServers {
-			if server.Arch == "" {
-				server.Arch = hostArchOrOS[server.Host]
-			}
-		}
-		for _, server := range s.TSStoreServers {
-			if server.Arch == "" {
-				server.Arch = hostArchOrOS[server.Host]
-			}
-		}
-		for _, server := range s.TSMonitorServers {
-			if server.Arch == "" {
-				server.Arch = hostArchOrOS[server.Host]
-			}
-		}
-		for _, server := range s.Grafanas {
-			if server.Arch == "" {
-				server.Arch = hostArchOrOS[server.Host]
-			}
-		}
-	}
+
 	return nil
 }
 

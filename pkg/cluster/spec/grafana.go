@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 
@@ -198,7 +199,7 @@ func (i *GrafanaInstance) InitConfig(
 	}
 	err := mergeAdditionalGrafanaConf(fp, userConfig)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	dst = filepath.Join(paths.Deploy, "conf", "grafana.ini")
@@ -221,28 +222,25 @@ func (i *GrafanaInstance) InitConfig(
 		return errors.WithStack(err)
 	}
 
-	//topo := reflect.ValueOf(i.topo)
-	//if topo.Kind() == reflect.Ptr {
-	//	topo = topo.Elem()
-	//}
-	// TODO: maybe should deploy a ts-server instance
-	//val := topo.FieldByName("Monitors")
-	//if (val == reflect.Value{}) {
-	//	return errors.Errorf("field Monitors not found in topology: %v", topo)
-	//}
-	//monitors := val.Interface().([]*PrometheusSpec)
-	//// transfer datasource.yml
-	//if len(monitors) == 0 {
-	//	return errors.New("no prometheus found in topology")
-	//}
+	topo := reflect.ValueOf(i.topo)
+	if topo.Kind() == reflect.Ptr {
+		topo = topo.Elem()
+	}
+	val := topo.FieldByName("Monitors")
+	if (val == reflect.Value{}) {
+		return errors.Errorf("field Monitors not found in topology: %v", topo)
+	}
+	monitors := val.Interface().([]*TSServerSpec)
+	// transfer datasource.yml
+	if len(monitors) == 0 {
+		return errors.Errorf("no monitoring_servers found in topology")
+	}
 	fp = filepath.Join(paths.Cache, fmt.Sprintf("datasource_%s.yml", i.GetHost()))
 	datasourceCfg := &config.DatasourceConfig{
 		ClusterName: clusterName,
 	}
-	if len(i.topo.(*Specification).TSSqlServers) > 0 {
-		sql0 := i.topo.(*Specification).TSSqlServers[0]
-		datasourceCfg.URL = fmt.Sprintf("http://%s", utils.JoinHostPort(sql0.Host, sql0.Port)) // TODO: monitor server address
-	}
+	monitor := monitors[0]
+	datasourceCfg.URL = fmt.Sprintf("http://%s", utils.JoinHostPort(monitor.Host, monitor.Port)) // TODO: https supported
 
 	if err = datasourceCfg.ConfigToFile(fp); err != nil {
 		return errors.WithStack(err)

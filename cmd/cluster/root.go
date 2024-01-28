@@ -43,6 +43,10 @@ var cm *manager.Manager
 func init() {
 	logger.InitGlobalLogger()
 
+	gui.AddColorFunctionsForCobra()
+
+	cobra.EnableCommandSorting = false
+
 	ClusterCmd = &cobra.Command{
 		Use:           "cluster",
 		Short:         "Deploy an openGemini cluster for production",

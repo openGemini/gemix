@@ -108,12 +108,12 @@ func (s *SpecManager) Metadata(clusterName string, meta any) error {
 
 	yamlFile, err := os.ReadFile(fname)
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.WithMessagef(err, "cluster name: %s read metadata failed", clusterName)
 	}
 
 	err = yaml.Unmarshal(yamlFile, meta)
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.WithMessagef(err, "ccluster name: %s unmarshal metadata failed", clusterName)
 	}
 
 	return nil
@@ -137,6 +137,45 @@ func (s *SpecManager) Exist(clusterName string) (exist bool, err error) {
 // Remove removes the data with specified cluster name.
 func (s *SpecManager) Remove(clusterName string) error {
 	return os.RemoveAll(s.Path(clusterName))
+}
+
+// List return the cluster names.
+func (s *SpecManager) List() (clusterNames []string, err error) {
+	fileInfos, err := os.ReadDir(s.base)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, errors.WithStack(err)
+	}
+
+	for _, info := range fileInfos {
+		if utils.IsNotExist(s.Path(info.Name(), metaFileName)) {
+			continue
+		}
+		clusterNames = append(clusterNames, info.Name())
+	}
+
+	return
+}
+
+// GetAllClusters get a metadata list of all clusters deployed by current user
+func (s *SpecManager) GetAllClusters() (map[string]Metadata, error) {
+	clusters := make(map[string]Metadata)
+	names, err := s.List()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	for _, name := range names {
+		metadata := s.NewMetadata()
+		err = s.Metadata(name, metadata)
+		// clusters with topology validation errors should also be listed
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		clusters[name] = metadata
+	}
+	return clusters, nil
 }
 
 // ensureDir ensures that the cluster directory exists.

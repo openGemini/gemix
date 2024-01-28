@@ -162,6 +162,22 @@ func (b *Builder) CopyComponent(pkgSrc, component, os, arch string,
 	return b
 }
 
+// MonitoredConfig appends a CopyComponent task to the current task collection
+func (b *Builder) MonitoredConfig(clusterName, comp, host string, info *spec.MonitorHostInfo, globResCtl meta.ResourceControl, options *spec.TSMonitoredOptions, deployUser string, tlsEnabled bool, paths meta.DirPaths) *Builder {
+	b.tasks = append(b.tasks, &MonitoredConfig{
+		clusterName: clusterName,
+		component:   comp,
+		host:        host,
+		info:        info,
+		globResCtl:  globResCtl,
+		options:     options,
+		deployUser:  deployUser,
+		tlsEnabled:  tlsEnabled,
+		paths:       paths,
+	})
+	return b
+}
+
 // SSHKeyGen appends a SSHKeyGen task to the current task collection
 func (b *Builder) SSHKeyGen(keypath string) *Builder {
 	b.tasks = append(b.tasks, &SSHKeyGen{

@@ -29,23 +29,36 @@ type TSMonitorScript struct {
 	LogDir    string
 }
 
-// ConfigToFile write config content to specific path
-func (c *TSMonitorScript) ConfigToFile(file string) error {
+// Config generate the config file data.
+func (c *TSMonitorScript) Config() ([]byte, error) {
 	fp := path.Join("templates", "scripts", "run_ts_monitor.sh.tpl")
 	tpl, err := embed.ReadTemplate(fp)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
+	return c.ConfigWithTemplate(string(tpl))
+}
 
-	tmpl, err := template.New("TSMonitor").Parse(string(tpl))
+// ConfigWithTemplate generate the BlackboxExporter config content by tpl
+func (c *TSMonitorScript) ConfigWithTemplate(tpl string) ([]byte, error) {
+	tmpl, err := template.New("TSMonitorScript").Parse(tpl)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
 	content := bytes.NewBufferString("")
-	if err := tmpl.Execute(content, c); err != nil {
-		return errors.WithStack(err)
+	if err = tmpl.Execute(content, c); err != nil {
+		return nil, errors.WithStack(err)
 	}
 
-	return utils.WriteFile(file, content.Bytes(), 0750)
+	return content.Bytes(), nil
+}
+
+// ConfigToFile write config content to specific path
+func (c *TSMonitorScript) ConfigToFile(file string) error {
+	config, err := c.Config()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return utils.WriteFile(file, config, 0755)
 }

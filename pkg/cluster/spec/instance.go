@@ -38,6 +38,7 @@ const (
 	ComponentTSMeta    = "ts-meta"
 	ComponentTSSql     = "ts-sql"
 	ComponentTSStore   = "ts-store"
+	ComponentTSServer  = "ts-server"
 	ComponentTSMonitor = "ts-monitor"
 	ComponentGrafana   = "grafana"
 )
@@ -73,7 +74,7 @@ type Instance interface {
 	DeployDir() string
 	UsedPorts() []int
 	UsedDirs() []string
-	Status(ctx context.Context, timeout time.Duration, tlsCfg *tls.Config, pdList ...string) string
+	Status(ctx context.Context, timeout time.Duration, tlsCfg *tls.Config, tsMetaList ...string) string
 	Uptime(ctx context.Context, timeout time.Duration, tlsCfg *tls.Config) time.Duration
 	DataDir() string
 	LogDir() string
@@ -426,8 +427,8 @@ func (i *BaseInstance) UsedDirs() []string {
 }
 
 // Status implements Instance interface
-func (i *BaseInstance) Status(ctx context.Context, timeout time.Duration, tlsCfg *tls.Config, pdList ...string) string {
-	return i.StatusFn(ctx, timeout, tlsCfg, pdList...)
+func (i *BaseInstance) Status(ctx context.Context, timeout time.Duration, tlsCfg *tls.Config, tsMetaList ...string) string {
+	return i.StatusFn(ctx, timeout, tlsCfg, tsMetaList...)
 }
 
 // Uptime implements Instance interface

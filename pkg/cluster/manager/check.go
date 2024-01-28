@@ -14,18 +14,21 @@
 
 package manager
 
-import "github.com/openGemini/gemix/pkg/cluster/spec"
+import (
+	"github.com/openGemini/gemix/pkg/cluster/spec"
+	"github.com/pkg/errors"
+)
 
 // checkConflict checks cluster conflict
 func checkConflict(m *Manager, clusterName string, topo spec.Topology) error {
-	//clusterList, err := m.specManager.GetAllClusters()
-	//if err != nil {
-	//	return err
-	//}
-	//// use a dummy cluster name, the real cluster name is set during deploy
-	//if err := spec.CheckClusterPortConflict(clusterList, clusterName, topo); err != nil {
-	//	return err
-	//}
-	//err = spec.CheckClusterDirConflict(clusterList, clusterName, topo)
-	return nil
+	clusterList, err := m.specManager.GetAllClusters()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	// use a dummy cluster name, the real cluster name is set during deploy
+	if err = spec.CheckClusterPortConflict(clusterList, clusterName, topo); err != nil {
+		return errors.WithStack(err)
+	}
+	err = spec.CheckClusterDirConflict(clusterList, clusterName, topo)
+	return errors.WithStack(err)
 }
