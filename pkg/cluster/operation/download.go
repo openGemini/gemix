@@ -58,10 +58,8 @@ func Download(prefix, component, nodeOS, arch, version string) error {
 
 	if utils2.IsExist(dstPath) {
 		if component == spec.ComponentOpenGemini {
-			if err := repository.VerifyComponent(version, dstPath); err != nil {
-				// TODO: do not remote package
-				//_ = os.Remove(dstPath) // nolint
-			}
+			// TODO: do not remote package
+			_ = repository.VerifyComponent(version, dstPath) // nolint
 		}
 	}
 
