@@ -9,8 +9,8 @@
 
 ## Documentation
 
-- [English](https://docs.opengemini.org/guide/reference/gemix/gemix_documentation_guide.html)
-- [简体中文](https://docs.opengemini.org/zh/guide/reference/gemix/gemix_documentation_guide)
+- [English]()
+- [简体中文](https://docs.opengemini.org/zh/guide/reference/gemix_manual.html)
 
 ## Installation
 
@@ -31,6 +31,11 @@ gemix playground
 ```sh
 gemix cluster insall opengemini_demo v1.1.1 ./topology.yaml --skip-create-user -p
 ```
+
+Tips:
+
+> If there are network issues with the automatic download of the installation package, 
+> please place the installation package under `~/.gemix/storage/cluster/packages/`
 
 ## Usage
 

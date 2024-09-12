@@ -45,7 +45,10 @@ func Download(prefix, component, nodeOS, arch, version string) error {
 
 	if component == spec.ComponentGrafana {
 		// FIXME: download from opengemini.org
-		fileName = fmt.Sprintf("%s-%s.%s-%s.tar.gz", component, ver.GrafanaVersion, nodeOS, arch)
+		if nodeOS == "darwin" {
+			arch = "amd64"
+		}
+		fileName = fmt.Sprintf("%s-enterprise-%s.%s-%s.tar.gz", component, ver.GrafanaVersion, nodeOS, arch)
 		componentUrl = strings.Join([]string{"https://dl.grafana.com/oss/release", fileName}, "/")
 	}
 	dstPath := spec.ProfilePath(spec.OpenGeminiPackageCacheDir, fileName)
@@ -55,9 +58,8 @@ func Download(prefix, component, nodeOS, arch, version string) error {
 
 	if utils2.IsExist(dstPath) {
 		if component == spec.ComponentOpenGemini {
-			if err := repository.VerifyComponent(version, dstPath); err != nil {
-				_ = os.Remove(dstPath) // nolint
-			}
+			// TODO: do not remote package
+			_ = repository.VerifyComponent(version, dstPath) // nolint
 		}
 	}
 
