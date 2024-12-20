@@ -49,7 +49,13 @@ func Download(prefix, component, nodeOS, arch, version string) error {
 			arch = "amd64"
 		}
 		fileName = fmt.Sprintf("%s-enterprise-%s.%s-%s.tar.gz", component, ver.GrafanaVersion, nodeOS, arch)
-		componentUrl = strings.Join([]string{"https://dl.grafana.com/oss/release", fileName}, "/")
+		// FIX for : https://github.com/openGemini/gemix/issues/67
+                grafanaBaseUrlEnv := os.Getenv("GRAFANA_BASE_URL");
+                if grafanaBaseUrlEnv == "" {
+                    grafanaBaseUrlEnv = "https://dl.grafana.com/enterprise/release"; //"https://dl.grafana.com/oss/release" is Deprecated
+                }
+                //componentUrl = strings.Join([]string{"https://dl.grafana.com/oss/release", fileName}, "/")
+		componentUrl = strings.Join([]string{ grafanaBaseUrlEnv, fileName}, "/")
 	}
 	dstPath := spec.ProfilePath(spec.OpenGeminiPackageCacheDir, fileName)
 	if err := os.MkdirAll(spec.ProfilePath(spec.OpenGeminiPackageCacheDir), 0750); err != nil {
