@@ -29,6 +29,6 @@ func checkConflict(m *Manager, clusterName string, topo spec.Topology) error {
 	if err = spec.CheckClusterPortConflict(clusterList, clusterName, topo); err != nil {
 		return errors.WithStack(err)
 	}
-	err = spec.CheckClusterDirConflict(clusterList, clusterName, topo)
+	//err = spec.CheckClusterDirConflict(clusterList, clusterName, topo)
 	return errors.WithStack(err)
 }
